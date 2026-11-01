@@ -1,6 +1,7 @@
 import { AlertCircle, History, LayoutDashboard, ListChecks, LogOut, Shield, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { api, getSession } from './api.js';
 import { Link, match, navigate, usePath } from './router.jsx';
 import CommandBar from './components/CommandBar.jsx';
@@ -79,6 +80,7 @@ export default function App() {
         </AnimatePresence>
         <Suspense fallback={<PageLoading />}>{page}</Suspense>
       </main>
+      <Analytics />
     </div>
   );
 }
