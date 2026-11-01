@@ -1,6 +1,8 @@
 # SARVAS
 
-SARVAS is a self-hostable AI coding platform. People who don't write code can
+SARVAS is an AI coding platform: use it at
+[sarvas.chinmaybharadwaj.in](https://sarvas.chinmaybharadwaj.in), or host it
+yourself. People who don't write code can
 ask questions about a repository, or describe a change in plain English. The
 engineers who own the code keep the final say: SARVAS only ever opens a pull
 request, and GitHub branch protection decides who can approve and merge it.
@@ -25,10 +27,14 @@ request, and GitHub branch protection decides who can approve and merge it.
 It never asks for a GitHub password, never pushes to a default branch, and
 can't approve or merge anything.
 
-**Run it:** use [Docker Compose on your own infrastructure](docs/SELF_HOSTING.md)
-for everything including Build, or run [locally from source](#run-from-source),
-or use the [free Vercel + Render](#deploy-free-page-on-vercel-backend-on-render)
-setup (Ask and README only). [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+**Use it:** sign in at [sarvas.chinmaybharadwaj.in](https://sarvas.chinmaybharadwaj.in).
+On the hosted site, repository code is sent to the AI provider (Baseten) and
+Build tasks run in [Modal](https://modal.com) sandboxes.
+
+**Host it yourself (optional):** to keep code on your own servers, use
+[Docker Compose](docs/SELF_HOSTING.md), run [locally from source](#run-from-source),
+or use [Vercel + Render](#deploy-free-page-on-vercel-backend-on-render) with
+Modal for Build. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 explains how it works and its security model.
 
 ## Quick start (Docker Compose)

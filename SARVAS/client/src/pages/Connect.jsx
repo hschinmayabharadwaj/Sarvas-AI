@@ -120,7 +120,7 @@ export default function Connect({ authError, installUrl }) {
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-3 px-6 text-sm">
           <span className="flex items-center gap-2 font-medium text-on-dark"><Logo /> SARVAS</span>
           <span className="flex-1" />
-          <span>Self-hosted AI coding agent. Your code stays on your infrastructure unless you allow otherwise.</span>
+          <span>AI coding agent for your GitHub repositories. Every change is a pull request your engineers approve.</span>
         </div>
       </footer>
     </div>
