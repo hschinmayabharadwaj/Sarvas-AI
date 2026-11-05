@@ -55,4 +55,5 @@ export const api = {
   discard: (id) => request('POST', `/api/proposals/${encodeURIComponent(id)}/discard`, {}),
   activity: () => request('GET', '/api/activity'),
   logout: () => request('POST', '/api/logout', {}),
+  demo: () => request('POST', '/auth/demo', {}),
 };

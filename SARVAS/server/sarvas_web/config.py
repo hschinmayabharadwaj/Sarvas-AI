@@ -20,6 +20,9 @@ DEFAULTS: dict = {
         "extraHosts": [],  # more Host headers to accept, e.g. the backend's own address behind a proxy
     },
     "github": {"clientId": "", "clientSecret": ""},
+    # Optional "Try the demo" sign-in for people without GitHub: a bot token
+    # (fine-grained PAT) that the demo is confined to using on this one repo.
+    "demo": {"repo": "", "token": ""},
     "agentService": {"url": "http://127.0.0.1:8766", "token": ""},
     "security": {
         "allowedUsers": [],
@@ -79,6 +82,9 @@ def load_config(config_path: str | os.PathLike = "config.json") -> dict:
     gh["clientId"] = gh.get("clientId") or os.environ.get("GITHUB_CLIENT_ID", "")
     gh["clientSecret"] = gh.get("clientSecret") or os.environ.get("GITHUB_CLIENT_SECRET", "")
     gh["appSlug"] = gh.get("appSlug") or os.environ.get("GITHUB_APP_SLUG", "")
+    demo = config["demo"]
+    demo["repo"] = demo.get("repo") or os.environ.get("SARVAS_DEMO_REPO", "")
+    demo["token"] = demo.get("token") or os.environ.get("SARVAS_DEMO_TOKEN", "")
     config["agentService"]["token"] = config["agentService"].get("token") or os.environ.get("AGENT_SERVICE_TOKEN", "")
     config["web"]["port"] = int(config["web"]["port"] or DEFAULTS["web"]["port"])
     config["web"]["extraHosts"] = _as_list(config["web"].get("extraHosts"))
@@ -110,6 +116,9 @@ def validate(config: dict) -> None:
     # It becomes part of a github.com link, so only GitHub's slug alphabet is allowed.
     if config["github"].get("appSlug") and not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,99}", config["github"]["appSlug"]):
         raise ValueError("github.appSlug (GITHUB_APP_SLUG) must be the App's URL name, e.g. sarvas-agent")
+    demo = config["demo"]
+    if demo["repo"] and (not demo["token"] or not re.fullmatch(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+", demo["repo"])):
+        raise ValueError("demo.repo (SARVAS_DEMO_REPO) must be owner/name, with demo.token (SARVAS_DEMO_TOKEN) set")
     base = urlparse(config["web"]["baseUrl"])
     if not base.hostname or not (base.scheme == "https" or (base.scheme == "http" and is_local(config))):
         raise ValueError("web.baseUrl must be https://, or http://localhost / http://127.0.0.1")

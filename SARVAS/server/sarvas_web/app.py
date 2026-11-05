@@ -27,7 +27,7 @@ from .actions import ACTIONS, README, ActionRefused, apply, authorize, fingerpri
 from .agent_client import AgentServiceError
 from .config import user_allowed
 from .crypto import random_token, safe_equal
-from .github import GitHubError, GitHubOAuth, GitHubUser, token_expired
+from .github import DEMO_LOGIN, DemoGitHub, GitHubError, GitHubOAuth, GitHubUser, token_expired
 from .indexer import Indexes
 from .rbac import role_of
 
@@ -77,6 +77,7 @@ def create_app(config: dict, store, agent, http: httpx.Client | None = None, ind
     allowed_hosts = {base.netloc, f"127.0.0.1:{web['port']}", f"localhost:{web['port']}", *web["extraHosts"]}
     oauth = GitHubOAuth(config["github"]["clientId"], config["github"]["clientSecret"],
                         f"{web['baseUrl'].rstrip('/')}/auth/callback", http)
+    demo = config["demo"]
 
     # ---------------------------------------------------------------- plumbing
 
@@ -105,6 +106,11 @@ def create_app(config: dict, store, agent, http: httpx.Client | None = None, ind
     def signed_in(request: Request) -> User:
         """Require a signed-in (and still allowed) user. Refreshes expired tokens."""
         sid, session = session_of(request)
+        if sid and session and session.get("login") == DEMO_LOGIN:
+            if not demo["token"]:
+                store.delete_session(sid)
+                raise ApiError(401, "The demo is switched off.", True)
+            return User(sid, session, DEMO_LOGIN, DemoGitHub(demo["token"], http, demo["repo"]))
         tokens = store.tokens(session) if session and session.get("login") else None
         if not tokens or not session or not sid:
             raise ApiError(401, "Not connected to GitHub.", True)
@@ -175,6 +181,16 @@ def create_app(config: dict, store, agent, http: httpx.Client | None = None, ind
         record(user["login"], "signed_in", {})
         return res
 
+    @app.post("/auth/demo")
+    def demo_sign_in(request: Request, _body: dict = Depends(csrf)):
+        if not demo["token"]:
+            raise ApiError(404, "Not found.")
+        res = JSONResponse({"ok": True})
+        # No GitHub token is stored: signed_in() supplies the bot token, locked to the demo repo.
+        set_cookie(res, store.sign_in(request.cookies.get(COOKIE), DEMO_LOGIN, {}))
+        record(DEMO_LOGIN, "signed_in", {"demo": True})
+        return res
+
     @app.get("/api/session")
     def session_info(request: Request, response: Response):
         sid, session = session_of(request)
@@ -189,7 +205,8 @@ def create_app(config: dict, store, agent, http: httpx.Client | None = None, ind
         # GitHub's own page, where the user picks all or selected repositories.
         install_url = f"https://github.com/apps/{slug}/installations/new" if slug else None
         return {"signedIn": bool(login), "login": login, "role": role_of(config, login) if login else None,
-                "csrf": session["csrf"], "actions": ACTIONS, "installUrl": install_url}
+                "csrf": session["csrf"], "actions": ACTIONS, "installUrl": install_url,
+                "demo": bool(demo["token"])}
 
     @app.post("/api/logout")
     def logout(request: Request, _body: dict = Depends(csrf)):

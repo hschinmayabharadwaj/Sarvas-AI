@@ -94,6 +94,23 @@ payments, infrastructure, CI or credentials. Configure roles with
 `SARVAS_ENGINEERS` / `SARVAS_ADMINS`. Engineer powers on a repository also
 need GitHub push access to it.
 
+## Demo mode (no GitHub account needed)
+
+To let anyone try the whole flow, set `SARVAS_DEMO_REPO` and `SARVAS_DEMO_TOKEN`.
+A **Try the demo** button then appears on the sign-in page.
+
+1. Create a throwaway repository, e.g. `you/sarvas-demo`, containing a small app and a README.
+2. Install the SARVAS GitHub App on it. Build tasks use the App to open pull requests.
+3. Create a bot GitHub account and add it as a collaborator. Give it a fine-grained PAT
+   for **only that repository**, with Contents and Pull requests set to read/write.
+4. Set `SARVAS_DEMO_REPO=you/sarvas-demo` and `SARVAS_DEMO_TOKEN=<the PAT>`.
+
+All visitors share one `demo visitor` account (a requester, so medium-risk plans
+wait for an engineer). They can see each other's tasks, and the hourly limits are
+shared, so one person can't run up your AI bill by clicking again. The server
+refuses any other repository for this account, even public ones. Every change still
+ends as a pull request on the demo repo, so close or reset them from time to time.
+
 ## Run from source
 
 Prerequisites: Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js 22+,

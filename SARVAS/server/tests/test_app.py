@@ -431,3 +431,20 @@ def test_api_only_behind_vercel_rewrite(tmp_path):
     assert c.post("/api/repos/octo/proj/proposals", json={"action": "create_readme", "content": "# x"},
                   headers=headers).status_code == 403
     assert c.get("/api/session", headers={"Host": "other.onrender.com"}).status_code == 400
+
+
+def test_demo_visitor_is_confined_to_the_demo_repo(env, monkeypatch):
+    assert env.c.get("/api/session").json()["demo"] is False
+    assert env.c.post("/auth/demo").status_code == 404
+    monkeypatch.setenv("SARVAS_DEMO_REPO", "octo/proj")
+    monkeypatch.setenv("SARVAS_DEMO_TOKEN", "ghu_bob")  # the bot's token
+    c = Client(create_app(load_config(env.tmp / "config.json"), env.store, FakeAgent(), env.gh.http), env.gh)
+    assert c.get("/api/session").json()["demo"] is True
+    assert c.post("/auth/demo").status_code == 200
+    assert c.get("/api/session").json()["login"] == "demo visitor"
+    assert [r["fullName"] for r in c.get("/api/repos").json()["repos"]] == ["octo/proj"]
+    assert c.get("/api/repos/torvalds/linux").status_code == 400  # refused before reaching GitHub
+    pid = c.propose().json()["id"]
+    assert c.post(f"/api/proposals/{pid}/approve").json()["prUrl"] == "https://github.com/octo/proj/pull/1"
+    c.post("/api/logout")
+    assert env.gh.revoked == []  # the bot token is never revoked by a visitor
