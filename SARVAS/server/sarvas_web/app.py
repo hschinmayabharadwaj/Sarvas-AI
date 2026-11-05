@@ -360,12 +360,13 @@ def create_app(config: dict, store, agent, http: httpx.Client | None = None, ind
         if e.status == 401:
             store.delete_session(request.cookies.get(COOKIE))
             return _error(401, str(e), True)
-        return _error(502, str(e))
+        # Not 502: Render's edge replaces 502 bodies with its own page, hiding this message.
+        return _error(424, str(e))
 
     @app.exception_handler(AgentServiceError)
     def on_agent_error(request: Request, e: AgentServiceError):
         # 409 (task moved on) and 503 (paused / unavailable) are meaningful to the page.
-        return _error(e.status if e.status in (409, 503) else 502, str(e))
+        return _error(e.status if e.status in (409, 503) else 424, str(e))
 
     @app.exception_handler(RequestValidationError)
     def on_invalid(request: Request, e: RequestValidationError):

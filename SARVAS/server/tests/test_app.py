@@ -456,5 +456,5 @@ def test_bad_demo_token_is_reported_without_signing_the_visitor_out(env, monkeyp
     c = Client(create_app(load_config(env.tmp / "config.json"), env.store, FakeAgent(), env.gh.http), env.gh)
     c.post("/auth/demo")
     res = c.get("/api/repos")
-    assert res.status_code == 502 and "SARVAS_DEMO_TOKEN" in res.json()["error"]
+    assert res.status_code == 424 and "SARVAS_DEMO_TOKEN" in res.json()["error"]
     assert c.get("/api/session").json()["signedIn"] is True
