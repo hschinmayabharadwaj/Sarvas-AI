@@ -197,7 +197,14 @@ class DemoGitHub(GitHubUser):
     def call(self, method: str, path: str, **kw):
         if path.lower() != self.prefix and not path.lower().startswith(self.prefix + "/"):
             raise GitHubError("The demo can only use its demo repository.", 404)
-        return super().call(method, path, **kw)
+        try:
+            return super().call(method, path, **kw)
+        except GitHubError as e:
+            # A 401 here is the server's bot token, not the visitor: keep them signed in and say so.
+            if e.status == 401:
+                raise GitHubError("The demo's GitHub token was rejected. Ask the administrator to "
+                                  "check SARVAS_DEMO_TOKEN.", 502) from None
+            raise
 
     def get_user(self) -> dict:
         return {"login": DEMO_LOGIN, "name": "Demo visitor"}

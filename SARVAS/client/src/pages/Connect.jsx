@@ -1,4 +1,4 @@
-import { ArrowRight, Check, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
+import { ArrowRight, Check, ExternalLink, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import Logo, { GitHubMark } from '../components/Logo.jsx';
@@ -92,7 +92,12 @@ export default function Connect({ authError, installUrl, demo }) {
           <div data-fade className="mt-8 flex flex-wrap items-center gap-5">
             <ConnectButton />
             {demo && <DemoButton />}
-            {installUrl && <a href={installUrl} className="btn h-11 px-6">Install the GitHub App</a>}
+            {installUrl && (
+              <a href={installUrl} target="_blank" rel="noopener noreferrer" className="btn h-11 px-6"
+                 title="Opens GitHub, where you choose which repositories SARVAS can access">
+                Install the GitHub App <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            )}
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <KeyRound className="size-4" aria-hidden="true" /> Never asks for your password
             </span>

@@ -1,4 +1,4 @@
-import { ChevronRight, FolderGit2, Lock, Plus, Search } from 'lucide-react';
+import { ChevronRight, ExternalLink, FolderGit2, Lock, Search } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../lib/utils';
 import { Link } from '../router.jsx';
@@ -19,11 +19,13 @@ export default function Repos({ repos, installUrl, className }) {
           </label>
         )}
         {installUrl && (
-          <a href={installUrl} className="btn h-9 px-3.5"><Plus className="size-4" aria-hidden="true" />Add or change</a>
+          <a href={installUrl} target="_blank" rel="noopener noreferrer" className="btn h-9 px-3.5">
+            Choose repositories <ExternalLink className="size-4" aria-hidden="true" />
+          </a>
         )}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Where the app is installed and you have access. Missing one? Use “Add or change” to pick more on GitHub.
+        Where the app is installed and you have access. Missing one? “Choose repositories” opens GitHub in a new tab to pick which ones SARVAS can access.
       </p>
       {repos === null && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
       {repos?.length === 0 && <p className="mt-4 text-sm">No repositories yet.</p>}
