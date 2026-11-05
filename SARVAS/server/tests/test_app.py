@@ -448,3 +448,13 @@ def test_demo_visitor_is_confined_to_the_demo_repo(env, monkeypatch):
     assert c.post(f"/api/proposals/{pid}/approve").json()["prUrl"] == "https://github.com/octo/proj/pull/1"
     c.post("/api/logout")
     assert env.gh.revoked == []  # the bot token is never revoked by a visitor
+
+
+def test_bad_demo_token_is_reported_without_signing_the_visitor_out(env, monkeypatch):
+    monkeypatch.setenv("SARVAS_DEMO_REPO", "octo/proj")
+    monkeypatch.setenv("SARVAS_DEMO_TOKEN", ' "ghu_nope" ')
+    c = Client(create_app(load_config(env.tmp / "config.json"), env.store, FakeAgent(), env.gh.http), env.gh)
+    c.post("/auth/demo")
+    res = c.get("/api/repos")
+    assert res.status_code == 502 and "SARVAS_DEMO_TOKEN" in res.json()["error"]
+    assert c.get("/api/session").json()["signedIn"] is True

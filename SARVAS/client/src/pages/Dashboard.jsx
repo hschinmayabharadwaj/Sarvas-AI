@@ -1,4 +1,4 @@
-import { ArrowRight, Check, CircleAlert, FolderGit2, GitPullRequest, Loader } from 'lucide-react';
+import { Check, ExternalLink, CircleAlert, FolderGit2, GitPullRequest, Loader } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import CountUp from '../components/CountUp.jsx';
@@ -183,9 +183,9 @@ function InstallApp({ login, installUrl }) {
         ))}
       </ol>
       {installUrl ? (
-        // Full-page navigation: GitHub's own page grants the access, then returns via the App's Setup URL.
-        <a href={installUrl} className="btn btn-primary mt-8 h-11 px-6">
-          Install the GitHub App <ArrowRight className="size-4" aria-hidden="true" />
+        // New tab: GitHub's own page, where the user picks all or selected repositories; it returns via the App's Setup URL.
+        <a href={installUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-8 h-11 px-6">
+          Install the GitHub App <ExternalLink className="size-4" aria-hidden="true" />
         </a>
       ) : (
         <p className="mt-8 text-sm text-muted-foreground">
