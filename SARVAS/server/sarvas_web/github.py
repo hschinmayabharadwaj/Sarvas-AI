@@ -203,7 +203,7 @@ class DemoGitHub(GitHubUser):
             # A 401 here is the server's bot token, not the visitor: keep them signed in and say so.
             if e.status == 401:
                 raise GitHubError("The demo's GitHub token was rejected. Ask the administrator to "
-                                  "check SARVAS_DEMO_TOKEN.", 502) from None
+                                  "check SARVAS_DEMO_TOKEN.", 424) from None
             raise
 
     def get_user(self) -> dict:
