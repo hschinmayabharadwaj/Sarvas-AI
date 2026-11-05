@@ -1,5 +1,6 @@
 import { ArrowRight, Check, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { api } from '../api.js';
 import Logo, { GitHubMark } from '../components/Logo.jsx';
 import Stagger from '../components/Stagger.jsx';
 import { SplitText } from 'gsap/SplitText';
@@ -34,7 +35,25 @@ function ConnectButton({ className = 'btn-primary' }) {
   );
 }
 
-export default function Connect({ authError, installUrl }) {
+// Signs in as the shared demo visitor (no GitHub account), confined to one demo repository.
+function DemoButton() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const start = () => {
+    setBusy(true);
+    api.demo().then(() => window.location.assign('/'), (e) => { setError(e.message); setBusy(false); });
+  };
+  return (
+    <>
+      <button type="button" onClick={start} disabled={busy} className="btn h-11 px-6">
+        {busy ? 'Starting demo…' : 'Try the demo, no GitHub needed'}
+      </button>
+      {error && <span role="alert" className="text-sm text-bad">{error}</span>}
+    </>
+  );
+}
+
+export default function Connect({ authError, installUrl, demo }) {
   const hero = useRef(null);
 
   // Headline rises in line by line; the rest follows.
@@ -72,6 +91,7 @@ export default function Connect({ authError, installUrl }) {
           )}
           <div data-fade className="mt-8 flex flex-wrap items-center gap-5">
             <ConnectButton />
+            {demo && <DemoButton />}
             {installUrl && <a href={installUrl} className="btn h-11 px-6">Install the GitHub App</a>}
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <KeyRound className="size-4" aria-hidden="true" /> Never asks for your password

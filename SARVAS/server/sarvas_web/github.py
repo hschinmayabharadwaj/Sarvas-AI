@@ -180,3 +180,36 @@ class GitHubUser:
         data = self.call("POST", f"/repos/{_enc(owner)}/{_enc(name)}/pulls",
                          body={"title": title, "head": head, "base": base, "body": body})
         return data["html_url"]
+
+
+DEMO_LOGIN = "demo visitor"  # has a space, so no real GitHub login can collide with it
+
+
+class DemoGitHub(GitHubUser):
+    """The shared demo visitor: a bot token, confined to one repository. The
+    token could read any public repo, so every other path is refused here."""
+
+    def __init__(self, token: str, http: httpx.Client, repo: str):
+        super().__init__(token, http)
+        self.owner, self.name = repo.split("/")
+        self.prefix = f"/repos/{_enc(self.owner)}/{_enc(self.name)}".lower()
+
+    def call(self, method: str, path: str, **kw):
+        if path.lower() != self.prefix and not path.lower().startswith(self.prefix + "/"):
+            raise GitHubError("The demo can only use its demo repository.", 404)
+        return super().call(method, path, **kw)
+
+    def get_user(self) -> dict:
+        return {"login": DEMO_LOGIN, "name": "Demo visitor"}
+
+    def get_emails(self) -> None:
+        return None
+
+    def get_orgs(self) -> None:
+        return None
+
+    def installations(self) -> list[dict]:
+        return [{"id": 0, "account": self.owner, "type": "", "repositorySelection": "selected"}]
+
+    def list_repos(self, limit: int = 300) -> list[dict]:
+        return [self.get_repo(self.owner, self.name)]

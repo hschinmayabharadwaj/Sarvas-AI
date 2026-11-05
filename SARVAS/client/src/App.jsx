@@ -44,7 +44,7 @@ export default function App() {
   }
 
   const query = new URLSearchParams(window.location.search);
-  if (!session.signedIn) return <Suspense fallback={null}><Connect authError={query.get('error')} installUrl={session.installUrl} /></Suspense>;
+  if (!session.signedIn) return <Suspense fallback={null}><Connect authError={query.get('error')} installUrl={session.installUrl} demo={session.demo} /></Suspense>;
 
   const route = match(path);
   const isAdmin = session.role === 'admin';
