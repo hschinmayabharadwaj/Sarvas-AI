@@ -112,6 +112,14 @@ export default function Connect({ authError, installUrl, demo }) {
         </div>
       </section>
 
+      <section className="mx-auto max-w-[1200px] px-6 pb-24">
+        <h2 className="display max-w-2xl text-3xl leading-[1.15] tracking-[-0.03em] sm:text-4xl">See SARVAS in action</h2>
+        <video src="/videos/sarvas-demo.mp4" controls playsInline preload="metadata"
+          className="mt-8 aspect-video w-full rounded-xl border bg-dark">
+          Your browser can't play this video. <a href="/videos/sarvas-demo.mp4">Download it</a>.
+        </video>
+      </section>
+
       <section className="bg-muted py-24">
         <div className="mx-auto max-w-[1200px] px-6">
           <h2 className="display max-w-2xl text-4xl leading-[1.08] tracking-[-0.04em] sm:text-5xl">
