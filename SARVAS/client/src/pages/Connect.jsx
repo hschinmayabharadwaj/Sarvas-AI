@@ -1,4 +1,4 @@
-import { ArrowRight, Check, ExternalLink, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
+import { ArrowRight, ExternalLink, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import Logo, { GitHubMark } from '../components/Logo.jsx';
@@ -64,6 +64,7 @@ export default function Connect({ authError, installUrl, demo }) {
       gsap.timeline({ defaults: { ease: 'power4.out' } })
         .from(split.lines, { yPercent: 110, duration: 1.1, stagger: 0.09 })
         .from('[data-fade]', { autoAlpha: 0, y: 18, duration: 0.8, stagger: 0.08 }, '-=0.7');
+      gsap.to('[data-float]', { y: -14, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1 });
     }, hero);
     return () => ctx.revert();
   }, []);
@@ -108,16 +109,15 @@ export default function Connect({ authError, installUrl, demo }) {
             <iframe src={SPLINE} title="Decorative 3D scene" loading="lazy" referrerPolicy="no-referrer"
               sandbox="allow-scripts allow-same-origin" tabIndex={-1} aria-hidden="true"
               className="aspect-square w-full rounded-xl border-0" />
-          ) : <PipelineWindow />}
+          ) : (
+            <div data-float>
+              {/* Muted autoplay loop; reduced-motion users get controls instead of autoplay. */}
+              <video src="/videos/sarvas-demo.mp4" muted loop playsInline autoPlay={!reducedMotion()} controls={reducedMotion()}
+                aria-label="SARVAS demo: from a request to a pull request"
+                className="aspect-video w-full rounded-xl border bg-dark object-cover shadow-2xl transition-[scale,box-shadow] duration-500 hover:scale-[1.03] hover:shadow-primary/30" />
+            </div>
+          )}
         </div>
-      </section>
-
-      <section className="mx-auto max-w-[1200px] px-6 pb-24">
-        <h2 className="display max-w-2xl text-3xl leading-[1.15] tracking-[-0.03em] sm:text-4xl">See SARVAS in action</h2>
-        <video src="/videos/sarvas-demo.mp4" controls playsInline preload="metadata"
-          className="mt-8 aspect-video w-full rounded-xl border bg-dark">
-          Your browser can't play this video. <a href="/videos/sarvas-demo.mp4">Download it</a>.
-        </video>
       </section>
 
       <section className="bg-muted py-24">
@@ -156,45 +156,6 @@ export default function Connect({ authError, installUrl, demo }) {
           <span>AI coding agent for your GitHub repositories. Every change is a pull request your engineers approve.</span>
         </div>
       </footer>
-    </div>
-  );
-}
-
-const STEPS = ['Plans the change', 'Waits for your approval', 'Builds it in a sandbox', "Runs the repository's checks", 'Opens a pull request'];
-
-// The pipeline every request goes through, ticking along on a GSAP loop.
-function PipelineWindow() {
-  const ref = useRef(null);
-  useLayoutEffect(() => {
-    if (reducedMotion()) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.timeline({ repeat: -1, repeatDelay: 1.8, defaults: { ease: 'power3.out' } })
-        .fromTo('[data-bar]', { scaleX: 0 }, { scaleX: 1, duration: 0.65 * STEPS.length, ease: 'none' }, 0)
-        .fromTo('[data-check]', { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.4, stagger: 0.65 }, 0)
-        .fromTo('[data-pr]', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.5 });
-    }, ref);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <div ref={ref} aria-hidden="true" className="card-dark mx-auto w-full max-w-lg rounded-xl">
-      <p className="font-display text-2xl font-semibold leading-tight tracking-[-0.03em] text-on-dark">From your request to a pull request</p>
-      <div className="mt-5 h-1 overflow-hidden rounded-full bg-dark-elevated">
-        <div data-bar className="h-full origin-left rounded-full bg-primary" />
-      </div>
-      <ol className="mt-6 space-y-3">
-        {STEPS.map((s) => (
-          <li key={s} className="flex items-center gap-3 text-on-dark">
-            <span className="grid size-5 place-items-center rounded-full bg-dark-elevated">
-              <Check data-check className="size-3 text-chart-4" />
-            </span>
-            {s}
-          </li>
-        ))}
-      </ol>
-      <p data-pr className="mt-6 flex items-center gap-2 rounded-md bg-dark-elevated px-4 py-3 text-sm text-on-dark">
-        <GitPullRequest className="size-4 text-primary" /> An engineer reviews and merges it on GitHub
-      </p>
     </div>
   );
 }
