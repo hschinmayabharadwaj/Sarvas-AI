@@ -6,47 +6,48 @@
 @import "@fontsource/dm-mono/400.css";
 @import "@fontsource/dm-mono/500.css";
 
-/* Dark, near-black surfaces, one mint signal, Manrope with DM Mono labels.
+/* Porcelain surfaces, carbon text and dark panels, an ultramarine signal, Manrope with DM Mono labels.
    Fonts are bundled (the CSP allows only 'self'). */
 :root {
-  --background: #0a0b0b;
-  --foreground: #ededed;
-  --body: #b6bbb8;
-  --card: #111312;
-  --muted: #171a19;
-  --muted-strong: #202423;
-  --muted-foreground: #8a908d;
-  --border: #232826;
-  --primary: #00bf8f;          /* mint */
-  --primary-active: #00a87e;
-  --primary-foreground: #04120e;
-  --link: #0df0b7;
-  --ring: #0df0b7;
-  --glow: rgb(0 191 143 / 0.16);
-  --grid: rgb(255 255 255 / 0.035);
-  --dark: #070808;             /* code windows and the footer sit one step darker */
-  --dark-soft: #0d0f0e;
-  --dark-elevated: #1a1e1c;
-  --on-dark: #ededed;
-  --on-dark-soft: #8a908d;
-  --ok: #34d399;
-  --bad: #f87171;
-  --warn: #fbbf24;
-  --disabled: #202423;
-  --diff-add-bg: rgb(52 211 153 / 0.14);
-  --diff-add-ink: #a7f3d0;
-  --diff-del-bg: rgb(248 113 113 / 0.14);
-  --diff-del-ink: #fecaca;
-  --chart-1: #00bf8f;
-  --chart-2: #b794f6;
-  --chart-3: #0df0b7;
-  --chart-4: #fbbf24;
-  --chart-5: #f87171;
+  --background: #f4f2ec;       /* porcelain */
+  --foreground: #1d1e20;       /* carbon */
+  --body: #3a3b3e;
+  --card: #fbfaf6;
+  --muted: #eae7df;
+  --muted-strong: #dcd8ce;
+  --muted-foreground: #55565a;
+  --border: #d6d2c7;
+  --primary: #2a3fd6;          /* ultramarine */
+  --primary-active: #2133b3;
+  --primary-foreground: #f4f2ec;
+  --link: #2a3fd6;
+  --ring: #2a3fd6;
+  --glow: rgb(42 63 214 / 0.12);
+  --glow-cool: rgb(29 30 32 / 0.05);
+  --grid: rgb(29 30 32 / 0.05);
+  --dark: #1d1e20;             /* code windows and the footer are carbon */
+  --dark-soft: #252629;
+  --dark-elevated: #34363a;
+  --on-dark: #f4f2ec;
+  --on-dark-soft: #a9aaae;
+  --ok: #17663f;
+  --bad: #b4233a;
+  --warn: #8a4a00;
+  --disabled: #dcd8ce;
+  --diff-add-bg: rgb(116 211 155 / 0.14);
+  --diff-add-ink: #bdf0d2;
+  --diff-del-bg: rgb(242 102 122 / 0.14);
+  --diff-del-ink: #fdc9d0;
+  --chart-1: #2a3fd6;
+  --chart-2: #1d1e20;
+  --chart-3: #8f9cff;
+  --chart-4: #8a4a00;
+  --chart-5: #17663f;
   --chart-background: var(--card);
   --chart-foreground: var(--foreground);
   --chart-foreground-muted: var(--muted);
   --chart-label: var(--muted-foreground);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -144,9 +145,10 @@
   .backdrop-grid {
     background-image:
       radial-gradient(ellipse 60% 50% at 50% 0%, var(--glow), transparent 70%),
+      radial-gradient(ellipse 50% 60% at 100% 100%, var(--glow-cool), transparent 70%),
       linear-gradient(to right, var(--grid) 1px, transparent 1px),
       linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
-    background-size: 100% 100%, 64px 64px, 64px 64px;
+    background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
   }
   pre.code, pre.diff {
     @apply m-0 overflow-x-auto rounded-lg border bg-dark font-mono text-[13px] leading-relaxed text-on-dark;
