@@ -58,10 +58,6 @@ export default function App({ initial }) {
     );
   }
 
-<<<<<<< Updated upstream
-  const query = new URLSearchParams(window.location.search);
-  if (!session.signedIn) return <Suspense fallback={null}><Connect authError={query.get('error')} installUrl={session.installUrl} demo={session.demo} /></Suspense>;
-=======
   const route = match(path);
   const query = new URLSearchParams(typeof window === 'undefined' ? initial.search : window.location.search);
   if (!session.signedIn) {
@@ -82,9 +78,7 @@ export default function App({ initial }) {
       </Suspense>
     );
   }
->>>>>>> Stashed changes
 
-  const route = match(path);
   const isAdmin = session.role === 'admin';
   let page;
   if (route.page === 'repo') page = <Repo key={path} owner={route.owner} name={route.name} onError={onError} />;
@@ -102,12 +96,8 @@ export default function App({ initial }) {
   };
 
   return (
-<<<<<<< Updated upstream
-    <div className="min-h-dvh">
-=======
     <ServerData.Provider value={path === ssrPath ? initial.data : NO_DATA}>
     <div className="flex min-h-dvh flex-col">
->>>>>>> Stashed changes
       <Header path={path} login={session.login} isAdmin={isAdmin} onLogout={logout} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
         <AnimatePresence>
