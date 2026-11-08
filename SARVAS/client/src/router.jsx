@@ -26,7 +26,9 @@ export function match(path) {
   if (path === '/tasks') return { page: 'tasks' };
   if (path === '/activity') return { page: 'activity' };
   if (path === '/admin') return { page: 'admin' };
-  return { page: 'home' };
+  if (path === '/privacy') return { page: 'privacy' };
+  if (path === '/') return { page: 'home' };
+  return { page: 'notFound' };
 }
 
 export function Link({ to, children, className }) {

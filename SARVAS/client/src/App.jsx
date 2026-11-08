@@ -5,6 +5,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { api, getSession } from './api.js';
 import { Link, match, navigate, usePath } from './router.jsx';
 import CommandBar from './components/CommandBar.jsx';
+import Footer from './components/Footer.jsx';
+import HelpConsole from './components/HelpConsole.jsx';
 import Logo from './components/Logo.jsx';
 import { PageLoading } from './components/Skeleton.jsx';
 import ShimmerText from './components/kokonutui/shimmer-text';
@@ -16,6 +18,8 @@ const Activity = lazy(() => import('./pages/Activity.jsx'));
 const Admin = lazy(() => import('./pages/Admin.jsx'));
 const Connect = lazy(() => import('./pages/Connect.jsx'));
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const NotFound = lazy(() => import('./pages/NotFound.jsx'));
+const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const Proposal = lazy(() => import('./pages/Proposal.jsx'));
 const Repo = lazy(() => import('./pages/Repo.jsx'));
 const Task = lazy(() => import('./pages/Task.jsx'));
@@ -44,10 +48,27 @@ export default function App() {
     );
   }
 
-  const query = new URLSearchParams(window.location.search);
-  if (!session.signedIn) return <Suspense fallback={null}><Connect authError={query.get('error')} installUrl={session.installUrl} demo={session.demo} /></Suspense>;
-
   const route = match(path);
+  const query = new URLSearchParams(window.location.search);
+  if (!session.signedIn) {
+    // Privacy and 404 are public; every other app page needs sign-in first.
+    const Public = { privacy: Privacy, notFound: NotFound }[route.page];
+    return (
+      <Suspense fallback={null}>
+        {Public ? (
+          <div className="flex min-h-dvh flex-col">
+            <header className="mx-auto flex h-16 w-full max-w-[1200px] items-center px-6">
+              <Link to="/" className="flex items-center gap-2 font-medium text-foreground no-underline hover:no-underline"><Logo /> SARVAS</Link>
+            </header>
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14"><Public /></main>
+            <Footer />
+          </div>
+        ) : <Connect authError={query.get('error')} installUrl={session.installUrl} demo={session.demo} />}
+        <HelpConsole />
+      </Suspense>
+    );
+  }
+
   const isAdmin = session.role === 'admin';
   let page;
   if (route.page === 'repo') page = <Repo key={path} owner={route.owner} name={route.name} onError={onError} />;
@@ -56,6 +77,8 @@ export default function App() {
   else if (route.page === 'tasks') page = <Tasks onError={onError} />;
   else if (route.page === 'activity') page = <Activity onError={onError} />;
   else if (route.page === 'admin' && isAdmin) page = <Admin onError={onError} />;
+  else if (route.page === 'privacy') page = <Privacy />;
+  else if (route.page === 'notFound') page = <NotFound />;
   else page = <Dashboard onError={onError} installUrl={session.installUrl} />;
 
   const logout = async () => {
@@ -63,9 +86,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       <Header path={path} login={session.login} isAdmin={isAdmin} onLogout={logout} />
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
         <AnimatePresence>
           {error && (
             <motion.div role="alert" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -80,6 +103,8 @@ export default function App() {
         </AnimatePresence>
         <Suspense fallback={<PageLoading />}>{page}</Suspense>
       </main>
+      <Footer />
+      <HelpConsole />
       <Analytics />
     </div>
   );
