@@ -4,12 +4,14 @@ import { api } from '../api.js';
 import Diff, { safeGitHubUrl } from '../components/Diff.jsx';
 import { PageLoading } from '../components/Skeleton.jsx';
 import { Link, navigate } from '../router.jsx';
+import { useServerData } from '../ssr.js';
 
 export default function Proposal({ id, onError }) {
-  const [p, setP] = useState(null);
+  const ssr = useServerData();
+  const [p, setP] = useState(ssr.proposal ?? null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { api.proposal(id).then(setP).catch(onError); }, [id, onError]);
+  useEffect(() => { if (!ssr.proposal) api.proposal(id).then(setP).catch(onError); }, [id, onError]);
 
   const approve = async () => {
     setBusy(true);

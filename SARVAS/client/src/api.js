@@ -22,6 +22,11 @@ async function request(method, url, body) {
   return data;
 }
 
+// Session the server already fetched while rendering the page.
+export function primeSession(s) {
+  csrf = s.csrf;
+}
+
 export async function getSession() {
   const s = await request('GET', '/api/session');
   csrf = s.csrf;

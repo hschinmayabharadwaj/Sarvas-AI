@@ -139,7 +139,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.delenv("BOT_DISABLED", raising=False)
     (tmp_path / "config.json").write_text(json.dumps({
         "web": {"port": PORT, "baseUrl": f"http://localhost:{PORT}", "dataDir": str(tmp_path),
-                "clientDist": str(tmp_path / "nope")},
+                "clientDist": str(tmp_path / "nope"), "ssrPort": 0},
         "github": {"clientId": "Iv1.test", "clientSecret": "shh"},
         "agentService": {"token": "x" * 32},
         "security": {"killSwitchFile": str(tmp_path / "KILL")},
@@ -401,6 +401,42 @@ def test_spa_fallback_and_no_path_escape(env, tmp_path):
     assert "SARVAS" in c.get("/repos/octo/proj").text
     assert "nope" not in c.get("/..%2Fsecret.txt").text
     assert c.get("/api/unknown").status_code == 404
+
+
+def test_pages_are_server_rendered_with_browser_fallback(env, tmp_path):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<title>SARVAS</title>")
+    env.config["web"].update(clientDist=str(dist), ssrPort=8767)
+    seen = []
+
+    def renderer(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        if req.url.path == "/broken":
+            return httpx.Response(500)
+        status = 404 if req.url.path == "/nope" else 200
+        return httpx.Response(status, text=f"<main>rendered {req.url.path}</main>")
+
+    app = create_app(env.config, env.store, FakeAgent(), env.gh.http, ssr=httpx.Client(transport=httpx.MockTransport(renderer)))
+    c = TestClient(app, base_url=BASE, follow_redirects=False)
+
+    first = c.get("/tasks?x=1")
+    assert first.text == "<main>rendered /tasks</main>"
+    assert first.headers["cache-control"] == "no-store"
+    assert "script-src 'self'" in first.headers["content-security-policy"]
+    # A first visit gets a session, and the renderer reads the API with that same cookie.
+    sid = first.cookies["agent_session"]
+    assert seen[0].headers["cookie"] == f"agent_session={sid}"
+    assert seen[0].url.host == "127.0.0.1" and seen[0].url.port == 8767 and seen[0].url.params["x"] == "1"
+    assert env.store.get_session(sid) is not None
+    # A returning visitor keeps their session; nothing else from the browser is passed on.
+    c.get("/", headers={"cookie": f"agent_session={sid}; other=secret"})
+    assert seen[1].headers["cookie"] == f"agent_session={sid}"
+    assert c.get("/nope").status_code == 404
+    assert c.get("/broken").text == "<title>SARVAS</title>"  # renderer failed: browser-rendered page
+
+    env.config["web"]["ssrPort"] = 0
+    assert env.client().get("/tasks").text == "<title>SARVAS</title>"
 
 
 def test_api_only_behind_vercel_rewrite(tmp_path):

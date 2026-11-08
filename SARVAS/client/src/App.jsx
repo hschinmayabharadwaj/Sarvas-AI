@@ -10,6 +10,7 @@ import { PageLoading } from './components/Skeleton.jsx';
 import ShimmerText from './components/kokonutui/shimmer-text';
 import { scrollToTop } from './lib/motion';
 import { cn } from './lib/utils';
+import { ServerData } from './ssr.js';
 
 // One chunk per page, so sign-in doesn't download the dashboard's charts.
 const Activity = lazy(() => import('./pages/Activity.jsx'));
@@ -21,14 +22,23 @@ const Repo = lazy(() => import('./pages/Repo.jsx'));
 const Task = lazy(() => import('./pages/Task.jsx'));
 const Tasks = lazy(() => import('./pages/Tasks.jsx'));
 
-export default function App() {
-  const path = usePath();
-  const [session, setSession] = useState(null);
+const NO_DATA = {};
+
+// initial: what the server rendered with (path, query, session, page data); undefined without SSR.
+export default function App({ initial }) {
+  const path = usePath(initial?.path);
+  const [session, setSession] = useState(initial?.session ?? null);
   const [error, setError] = useState('');
+  // Server-fetched data belongs to the first page only; dropped on the first navigation.
+  const [ssrPath, setSsrPath] = useState(initial?.path);
 
   const refresh = useCallback(() => getSession().then(setSession).catch((e) => setError(e.message)), []);
-  useEffect(() => { refresh(); }, [refresh]);
-  useEffect(() => { setError(''); scrollToTop(); }, [path]);
+  useEffect(() => { if (!initial) refresh(); }, [initial, refresh]);
+  useEffect(() => {
+    setError('');
+    scrollToTop();
+    if (path !== initial?.path) setSsrPath(null);
+  }, [path, initial]);
 
   // Shared error handler for pages: a signed-out response returns to Connect.
   const onError = useCallback((e) => {
@@ -44,8 +54,31 @@ export default function App() {
     );
   }
 
+<<<<<<< Updated upstream
   const query = new URLSearchParams(window.location.search);
   if (!session.signedIn) return <Suspense fallback={null}><Connect authError={query.get('error')} installUrl={session.installUrl} demo={session.demo} /></Suspense>;
+=======
+  const route = match(path);
+  const query = new URLSearchParams(typeof window === 'undefined' ? initial.search : window.location.search);
+  if (!session.signedIn) {
+    // Privacy and 404 are public; every other app page needs sign-in first.
+    const Public = { privacy: Privacy, notFound: NotFound }[route.page];
+    return (
+      <Suspense fallback={null}>
+        {Public ? (
+          <div className="flex min-h-dvh flex-col">
+            <header className="mx-auto flex h-16 w-full max-w-[1200px] items-center px-6">
+              <Link to="/" className="flex items-center gap-2 font-medium text-foreground no-underline hover:no-underline"><Logo /> SARVAS</Link>
+            </header>
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14"><Public /></main>
+            <Footer />
+          </div>
+        ) : <Connect authError={query.get('error')} installUrl={session.installUrl} demo={session.demo} />}
+        <HelpConsole />
+      </Suspense>
+    );
+  }
+>>>>>>> Stashed changes
 
   const route = match(path);
   const isAdmin = session.role === 'admin';
@@ -63,7 +96,12 @@ export default function App() {
   };
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-dvh">
+=======
+    <ServerData.Provider value={path === ssrPath ? initial.data : NO_DATA}>
+    <div className="flex min-h-dvh flex-col">
+>>>>>>> Stashed changes
       <Header path={path} login={session.login} isAdmin={isAdmin} onLogout={logout} />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         <AnimatePresence>
@@ -82,6 +120,7 @@ export default function App() {
       </main>
       <Analytics />
     </div>
+    </ServerData.Provider>
   );
 }
 

@@ -1,5 +1,10 @@
+<<<<<<< Updated upstream
 import { ArrowRight, Check, ExternalLink, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
+=======
+import { ArrowRight, ExternalLink, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+>>>>>>> Stashed changes
 import { api } from '../api.js';
 import Logo, { GitHubMark } from '../components/Logo.jsx';
 import Stagger from '../components/Stagger.jsx';
@@ -55,6 +60,15 @@ function DemoButton() {
 
 export default function Connect({ authError, installUrl, demo }) {
   const hero = useRef(null);
+  const video = useRef(null);
+
+  // Muted autoplay loop; reduced-motion users get controls instead.
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    if (reducedMotion()) v.controls = true;
+    else v.play().catch(() => {});
+  }, []);
 
   // Headline rises in line by line; the rest follows.
   useLayoutEffect(() => {
@@ -108,7 +122,17 @@ export default function Connect({ authError, installUrl, demo }) {
             <iframe src={SPLINE} title="Decorative 3D scene" loading="lazy" referrerPolicy="no-referrer"
               sandbox="allow-scripts allow-same-origin" tabIndex={-1} aria-hidden="true"
               className="aspect-square w-full rounded-xl border-0" />
+<<<<<<< Updated upstream
           ) : <PipelineWindow />}
+=======
+          ) : (
+            <div data-float>
+              <video ref={video} src="/videos/sarvas-demo.mp4" muted loop playsInline
+                aria-label="SARVAS demo: from a request to a pull request"
+                className="aspect-video w-full rounded-xl border bg-dark object-cover shadow-2xl transition-[scale,box-shadow] duration-500 hover:scale-[1.03] hover:shadow-primary/30" />
+            </div>
+          )}
+>>>>>>> Stashed changes
         </div>
       </section>
 

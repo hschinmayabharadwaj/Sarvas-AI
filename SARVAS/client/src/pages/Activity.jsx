@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import AuditTable from '../components/AuditTable.jsx';
+import { useServerData } from '../ssr.js';
 
 export default function Activity({ onError }) {
-  const [events, setEvents] = useState(null);
-  useEffect(() => { api.activity().then((d) => setEvents(d.events)).catch(onError); }, [onError]);
+  const ssr = useServerData();
+  const [events, setEvents] = useState(ssr.activity?.events ?? null);
+  useEffect(() => { if (!ssr.activity) api.activity().then((d) => setEvents(d.events)).catch(onError); }, [onError]);
 
   return (
     <section className="card">

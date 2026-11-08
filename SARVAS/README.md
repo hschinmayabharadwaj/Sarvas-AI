@@ -72,7 +72,7 @@ upgrades, backups, troubleshooting and how to revoke access.
 
 | Part | Stack |
 |---|---|
-| `client/` | React 19 + Vite. No UI library, strict CSP, and model output is never rendered as HTML |
+| `client/` | React 19 + Vite, server-rendered: FastAPI forwards each page request to a small Node renderer (`client/server.js`, loopback only), which fetches the session and page data from the API and returns the HTML; the browser then hydrates it. If the renderer is down or Node isn't installed, pages render in the browser instead. No UI library, strict CSP, and model output is never rendered as HTML |
 | `server/` | Python 3.12, FastAPI, httpx, cryptography, stdlib `sqlite3` (FTS5 for the index) |
 | `agent/` | Go, **standard library only**: AI providers, guardrails, GitHub App client, sandbox, pipeline |
 | `sandbox/` | The sandbox image (agent-runner plus git; add your repositories' toolchains) |
@@ -119,12 +119,14 @@ Go 1.23+, git 2.31+. Docker is needed only for Build tasks and `agent-cli`.
 ```bash
 cp config.example.json config.json
 cp .env.example .env              # fill in GitHub App credentials; AI_PROVIDER=sim to try without a model
-make install && make run          # agent-service + FastAPI on http://localhost:8765
+make install && make run          # agent-service + FastAPI (+ page renderer) on http://localhost:8765
 ```
 
 For hot reload, run `make run-service` and `make run-web`, then
 `npm --prefix client run dev`. Set `web.baseUrl` and the App callback to
-`http://localhost:5173`.
+`http://localhost:5173`. The Vite dev server renders in the browser; server
+rendering needs `npm run build` (FastAPI then starts the renderer on port
+`web.ssrPort`, 8767; set it to 0 to turn server rendering off).
 
 ## agent-cli (terminal pipeline)
 
@@ -136,8 +138,9 @@ make sandbox-image
 
 ## Deploy free: page on Vercel, backend on Render
 
-The browser talks only to the Vercel address. Vercel forwards `/api/*` and
-`/auth/*` to Render, so the sign-in cookie is first-party.
+The browser talks only to the Vercel address. Vercel serves the static files
+(scripts, images, video) and forwards everything else (pages, `/api/*` and
+`/auth/*`) to Render, which renders the pages. The sign-in cookie is first-party.
 
 1. **Render** (New → Web Service → Docker): Root Directory `SARVAS`, Dockerfile
    `deploy/render/Dockerfile`, build context `.`, Free instance. Set these
@@ -147,13 +150,14 @@ The browser talks only to the Vercel address. Vercel forwards `/api/*` and
    `SARVAS_ALLOWED_USERS`, and optionally `SARVAS_ENGINEERS`,
    `SARVAS_ADMINS` and `AI_SEND_CODE=true`. Without `AI_SEND_CODE=true`, Ask
    stays off with Gemini.
-2. **Vercel:** point the two rewrites in `client/vercel.json` at your Render
+2. **Vercel:** point the three rewrites in `client/vercel.json` at your Render
    address, then import the repo with Root Directory `SARVAS/client`.
 3. **GitHub App** callback: `https://<your-vercel-address>/auth/callback`.
 
 Limits: Render has no Docker, so **Build tasks are off** there. The free
 instance sleeps after 15 minutes, so the first request may time out (reload
-once). Its disk is wiped on restart, so sessions, tasks and the index start
+once). Pages are rendered there too, so a sleeping instance delays the first page,
+not just the first API call. Its disk is wiped on restart, so sessions, tasks and the index start
 fresh.
 
 ## Tests and checks

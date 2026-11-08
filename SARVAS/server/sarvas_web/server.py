@@ -1,11 +1,15 @@
 """Wire config, storage and the agent client into the app, and serve it."""
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import os
 import re
+import shutil
+import subprocess
 import sys
+from pathlib import Path
 
 import uvicorn
 
@@ -45,6 +49,23 @@ def build(config_path: str):
     return config, create_app(config, store, agent)
 
 
+def start_renderer(web: dict) -> None:
+    """Start the Node page renderer (client/server.js) next to this server, if it's built."""
+    script = Path(web["clientDist"]).parent / "server.js" if web["clientDist"] else None
+    node = shutil.which("node")
+    if not web["ssrPort"] or not script or not (script.parent / "dist-ssr").is_dir() or not node:
+        print("ℹ️  Server-side rendering is off (needs node and `npm run build`); pages render in the browser.",
+              flush=True)
+        return
+    # Only what it needs: never the GitHub or AI secrets in this process's environment.
+    env = {"PATH": os.environ.get("PATH", ""), "NODE_ENV": "production",
+           "SARVAS_API_URL": f"http://127.0.0.1:{web['port']}", "SARVAS_SSR_PORT": str(web["ssrPort"]),
+           "SARVAS_SSR_PARENT_PIPE": "1"}
+    # The renderer exits when this pipe closes, so it never outlives a killed server.
+    proc = subprocess.Popen([node, str(script)], env=env, stdin=subprocess.PIPE)
+    atexit.register(proc.terminate)
+
+
 def main(argv: list[str]) -> None:
     config_path = argv[1] if len(argv) > 1 else os.environ.get("CONFIG_PATH", "../config.json")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -58,6 +79,7 @@ def main(argv: list[str]) -> None:
     web = config["web"]
     if web["host"] not in ("127.0.0.1", "localhost", "::1"):
         print(f"⚠️  web.host={web['host']} exposes the page beyond this machine; it must sit behind HTTPS.", flush=True)
+    start_renderer(web)
     print(f"🤖 SARVAS running at {web['baseUrl']}", flush=True)
     # No access log: the OAuth callback URL carries the one-time code.
     uvicorn.run(app, host=web["host"], port=web["port"], access_log=False,
