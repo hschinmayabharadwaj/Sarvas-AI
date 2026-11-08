@@ -10,6 +10,7 @@ import { firstLine } from '../lib/status';
 import { gsap } from '../lib/motion';
 import { cn, reducedMotion } from '../lib/utils';
 import { Link, navigate } from '../router.jsx';
+import { useServerData } from '../ssr.js';
 
 const STEPS = [
   ['plan', 'Plan', ['pending', 'planning']],
@@ -60,12 +61,13 @@ function Stepper({ index, done }) {
 }
 
 export default function Task({ id, onError }) {
-  const [t, setT] = useState(null);
+  const ssr = useServerData();
+  const [t, setT] = useState(ssr.task ?? null);
   const [busy, setBusy] = useState(false);
   const [answers, setAnswers] = useState('');
 
   const load = useCallback(() => api.task(id).then(setT).catch(onError), [id, onError]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!ssr.task) load(); }, [load]);
   useEffect(() => {
     if (!t || !WORKING.has(t.status)) return undefined;
     const timer = setTimeout(load, 3000);

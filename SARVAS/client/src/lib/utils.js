@@ -5,4 +5,4 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export const reducedMotion = () => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+export const reducedMotion = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);

@@ -10,10 +10,12 @@ import { RingCenter } from '../components/charts/ring-center';
 import { RingChart } from '../components/charts/ring-chart';
 import { taskStatus } from '../lib/status';
 import { Link } from '../router.jsx';
+import { useServerData } from '../ssr.js';
 import Repos from './Repos.jsx';
 
 // GitHub adds this when it sends people back from the install page (the App's Setup URL).
-const returnedFromGitHub = new URLSearchParams(window.location.search).get('setup_action');
+// Not known on the server; on that one return visit React re-renders the page in the browser.
+const returnedFromGitHub = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('setup_action');
 
 const ROLE_HELP = {
   requester: 'You can ask questions and request changes. Engineers review and merge every pull request.',
@@ -30,14 +32,15 @@ const SLICES = [
 ];
 
 export default function Dashboard({ onError, installUrl }) {
-  const [me, setMe] = useState(null);
-  const [repos, setRepos] = useState(null);
-  const [tasks, setTasks] = useState(null);
+  const ssr = useServerData();
+  const [me, setMe] = useState(ssr.me ?? null);
+  const [repos, setRepos] = useState(ssr.repos?.repos ?? null);
+  const [tasks, setTasks] = useState(ssr.tasks?.tasks ?? null);
 
   useEffect(() => {
-    api.me().then(setMe).catch(onError);
-    api.repos().then((d) => setRepos(d.repos)).catch(onError);
-    api.tasks().then((d) => setTasks(d.tasks)).catch(onError);
+    if (!ssr.me) api.me().then(setMe).catch(onError);
+    if (!ssr.repos) api.repos().then((d) => setRepos(d.repos)).catch(onError);
+    if (!ssr.tasks) api.tasks().then((d) => setTasks(d.tasks)).catch(onError);
     if (returnedFromGitHub) window.history.replaceState({}, '', '/');
   }, [onError]);
 

@@ -11,6 +11,7 @@ docs/
 # Build outputs and dependencies (rebuilt inside the image)
 **/node_modules/
 client/dist/
+client/dist-ssr/
 agent/bin/
 server/.venv/
 **/__pycache__/

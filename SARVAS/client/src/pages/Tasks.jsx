@@ -7,6 +7,7 @@ import StatusPill from '../components/StatusPill.jsx';
 import { firstLine, taskStatus } from '../lib/status';
 import { cn } from '../lib/utils';
 import { Link } from '../router.jsx';
+import { useServerData } from '../ssr.js';
 
 const FILTERS = [
   ['all', 'All', () => true],
@@ -17,9 +18,10 @@ const FILTERS = [
 ];
 
 export default function Tasks({ onError }) {
-  const [tasks, setTasks] = useState(null);
+  const ssr = useServerData();
+  const [tasks, setTasks] = useState(ssr.tasks?.tasks ?? null);
   const [filter, setFilter] = useState('all');
-  useEffect(() => { api.tasks().then((d) => setTasks(d.tasks)).catch(onError); }, [onError]);
+  useEffect(() => { if (!ssr.tasks) api.tasks().then((d) => setTasks(d.tasks)).catch(onError); }, [onError]);
 
   if (!tasks) return <PageLoading />;
   const keep = FILTERS.find(([id]) => id === filter)[2];

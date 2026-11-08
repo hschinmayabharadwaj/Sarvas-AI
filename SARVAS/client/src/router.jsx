@@ -6,8 +6,9 @@ export function navigate(to) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-export function usePath() {
-  const [path, setPath] = useState(window.location.pathname);
+// initial: the request path when rendering on the server (no window there).
+export function usePath(initial) {
+  const [path, setPath] = useState(() => initial ?? window.location.pathname);
   useEffect(() => {
     const onPop = () => setPath(window.location.pathname);
     window.addEventListener('popstate', onPop);

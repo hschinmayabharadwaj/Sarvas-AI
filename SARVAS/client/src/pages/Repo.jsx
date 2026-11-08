@@ -9,14 +9,16 @@ import SmoothTab from '../components/kokonutui/smooth-tab';
 import { PlaceholdersAndVanishInput } from '../components/ui/placeholders-and-vanish-input';
 import { cn } from '../lib/utils';
 import { Link, navigate } from '../router.jsx';
+import { useServerData } from '../ssr.js';
 
 export default function Repo({ owner, name, onError }) {
-  const [data, setData] = useState(null);
+  const ssr = useServerData();
+  const [data, setData] = useState(ssr.repo ?? null);
   const [tab, setTab] = useState('ask');
   // An Ask answer handed to Build as a starting request.
   const [draft, setDraft] = useState(null);
 
-  useEffect(() => { api.repo(owner, name).then(setData).catch(onError); }, [owner, name, onError]);
+  useEffect(() => { if (!ssr.repo) api.repo(owner, name).then(setData).catch(onError); }, [owner, name, onError]);
 
   if (!data) return <PageLoading />;
   const { repo } = data;

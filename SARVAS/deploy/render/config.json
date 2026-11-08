@@ -6,7 +6,7 @@
     "extraHosts": "${RENDER_EXTERNAL_HOSTNAME}",
     "sessionHours": 8,
     "dataDir": "./data",
-    "clientDist": ""
+    "clientDist": "./client/dist"
   },
   "github": {
     "clientId": "${GITHUB_CLIENT_ID}",

@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 
 from . import workflows
 from .actions import ACTIONS, README, ActionRefused, apply, authorize, fingerprint, propose
@@ -66,8 +66,10 @@ def _error(status: int, message: str, signed_out: bool = False) -> JSONResponse:
     return JSONResponse({"error": message, **({"signedOut": True} if signed_out else {})}, status_code=status)
 
 
-def create_app(config: dict, store, agent, http: httpx.Client | None = None, indexes: Indexes | None = None) -> FastAPI:
+def create_app(config: dict, store, agent, http: httpx.Client | None = None, indexes: Indexes | None = None,
+               ssr: httpx.Client | None = None) -> FastAPI:
     http = http or httpx.Client(timeout=30)
+    ssr = ssr or httpx.Client(timeout=20)  # the page renderer; its own API calls time out after 8 s
     indexes = indexes or Indexes(config)
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -328,16 +330,36 @@ def create_app(config: dict, store, agent, http: httpx.Client | None = None, ind
     index = dist / "index.html" if dist else None
     if dist is not None and index is not None and index.is_file():
         root, index_file = dist, index
+        ssr_url = f"http://127.0.0.1:{web['ssrPort']}" if web["ssrPort"] else ""
 
         @app.get("/{rest:path}", include_in_schema=False)
-        def spa(rest: str):
+        def spa(rest: str, request: Request):
             if rest.startswith("auth/"):
                 return PlainTextResponse("Not found", status_code=404)
             target = (root / rest).resolve()
             hidden = any(part.startswith(".") for part in Path(rest).parts)
             if rest and not hidden and target.is_relative_to(root) and target.is_file():
                 return FileResponse(target, headers={"Cache-Control": "public, max-age=3600"})
-            return FileResponse(index_file)
+            if not ssr_url:
+                return FileResponse(index_file)
+            # Server-side render: the renderer reads the session and page data back from this
+            # API on loopback with the visitor's session cookie (made here on a first visit).
+            sid, session = session_of(request)
+            new_sid = None if session else store.new_session()
+            try:
+                page = ssr.get(ssr_url + request.url.path, params=request.query_params,
+                               headers={"cookie": f"{COOKIE}={new_sid or sid}"})
+            except httpx.HTTPError:
+                page = None
+            if page is not None and page.status_code in (200, 404):
+                res: Response = HTMLResponse(page.text, page.status_code, headers={"Cache-Control": "no-store"})
+            else:
+                if page is not None:
+                    log.warning("page renderer answered %s; serving the browser-rendered page", page.status_code)
+                res = FileResponse(index_file)  # renderer down: the page renders in the browser instead
+            if new_sid:
+                set_cookie(res, new_sid)
+            return res
     else:
         @app.get("/", include_in_schema=False)
         def not_built():

@@ -3,14 +3,16 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import AuditTable from '../components/AuditTable.jsx';
 import { cn } from '../lib/utils';
+import { useServerData } from '../ssr.js';
 
 export default function Admin({ onError }) {
-  const [events, setEvents] = useState(null);
-  const [me, setMe] = useState(null);
+  const ssr = useServerData();
+  const [events, setEvents] = useState(ssr.audit?.events ?? null);
+  const [me, setMe] = useState(ssr.me ?? null);
 
   useEffect(() => {
-    api.adminAudit().then((d) => setEvents(d.events)).catch(onError);
-    api.me().then(setMe).catch(onError);
+    if (!ssr.audit) api.adminAudit().then((d) => setEvents(d.events)).catch(onError);
+    if (!ssr.me) api.me().then(setMe).catch(onError);
   }, [onError]);
 
   const toggle = async () => {

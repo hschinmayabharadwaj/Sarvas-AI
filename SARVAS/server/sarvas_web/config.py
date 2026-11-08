@@ -17,6 +17,7 @@ DEFAULTS: dict = {
         "sessionHours": 8,
         "dataDir": "./data",
         "clientDist": "./client/dist",  # "" = API only (page hosted elsewhere)
+        "ssrPort": 8767,  # loopback port of the Node page renderer (client/server.js); 0 = render in the browser
         "extraHosts": [],  # more Host headers to accept, e.g. the backend's own address behind a proxy
     },
     "github": {"clientId": "", "clientSecret": ""},
@@ -87,6 +88,7 @@ def load_config(config_path: str | os.PathLike = "config.json") -> dict:
     demo["token"] = (demo.get("token") or os.environ.get("SARVAS_DEMO_TOKEN", "")).strip().strip('"\'')
     config["agentService"]["token"] = config["agentService"].get("token") or os.environ.get("AGENT_SERVICE_TOKEN", "")
     config["web"]["port"] = int(config["web"]["port"] or DEFAULTS["web"]["port"])
+    config["web"]["ssrPort"] = int(config["web"]["ssrPort"] or 0)
     config["web"]["extraHosts"] = _as_list(config["web"].get("extraHosts"))
     sec["allowedUsers"] = _as_list(sec.get("allowedUsers"))
     sec["allowedRepos"] = _as_list(sec.get("allowedRepos"))
