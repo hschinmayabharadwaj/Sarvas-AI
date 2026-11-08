@@ -61,7 +61,7 @@ export function PlaceholdersAndVanishInput({
 
     const fontSize = parseFloat(computedStyles.getPropertyValue("font-size"));
     ctx.font = `${fontSize * 2}px ${computedStyles.fontFamily}`;
-    ctx.fillStyle = "#FFF";
+    ctx.fillStyle = computedStyles.color; // particles take the theme text color
     ctx.fillText(value, 16, 40);
 
     const imageData = ctx.getImageData(0, 0, 800, 800);
@@ -184,7 +184,7 @@ export function PlaceholdersAndVanishInput({
       <canvas
         aria-hidden="true"
         className={cn(
-          "absolute pointer-events-none  text-base transform scale-50 top-[20%] left-2 sm:left-8 origin-top-left filter invert dark:invert-0 pr-20",
+          "absolute pointer-events-none  text-base transform scale-50 top-[20%] left-2 sm:left-8 origin-top-left pr-20",
           !animating ? "opacity-0" : "opacity-100"
         )}
         ref={canvasRef}

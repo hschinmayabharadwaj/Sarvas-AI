@@ -1,6 +1,7 @@
 import { ArrowRight, ExternalLink, GitPullRequest, KeyRound, MessageSquareCode, ShieldCheck, Wand2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
+import Footer from '../components/Footer.jsx';
 import Logo, { GitHubMark } from '../components/Logo.jsx';
 import Stagger from '../components/Stagger.jsx';
 import { SplitText } from 'gsap/SplitText';
@@ -149,13 +150,7 @@ export default function Connect({ authError, installUrl, demo }) {
         </div>
       </Stagger>
 
-      <footer className="bg-dark py-16 text-on-dark-soft">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-3 px-6 text-sm">
-          <span className="flex items-center gap-2 font-medium text-on-dark"><Logo /> SARVAS</span>
-          <span className="flex-1" />
-          <span>AI coding agent for your GitHub repositories. Every change is a pull request your engineers approve.</span>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
