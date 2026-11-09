@@ -1,6 +1,7 @@
-import { ArrowLeft, FileText, FolderGit2, GitBranch, GitPullRequest, Lock, MessageSquareCode, RefreshCw, Wand2 } from 'lucide-react';
+import { ArrowLeft, FileText, FolderGit2, GitBranch, GitPullRequest, Lock, Maximize2, MessageSquareCode, RefreshCw, Wand2, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../api.js';
 import Markdown from '../components/Markdown.jsx';
 import { PageLoading } from '../components/Skeleton.jsx';
@@ -233,10 +234,52 @@ function Build({ owner, name, onError, initial = '' }) {
   );
 }
 
+// Nearly full-screen window for reading a long README: title bar, close button, Escape closes.
+function ReadmeWindow({ title, text, onClose }) {
+  const close = useRef(null);
+  useEffect(() => {
+    const opener = document.activeElement;
+    close.current?.focus();
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    document.documentElement.style.overflow = 'hidden';  // the page behind stays put
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.documentElement.style.overflow = '';
+      opener?.focus?.();
+    };
+  }, [onClose]);
+
+  // Portal to <body>: the tab panel is transformed, which would trap `fixed` inside it.
+  return createPortal(
+    <div className="fixed inset-0 z-50 bg-dark/50 p-3 sm:p-6" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" aria-label={title}
+        className="mx-auto flex h-full max-w-[1600px] flex-col overflow-hidden rounded-xl border bg-card shadow-2xl">
+        <div className="flex items-center gap-2 border-b bg-muted px-4 py-2.5 text-sm font-medium text-foreground">
+          <FileText className="size-4 text-primary" aria-hidden="true" />
+          <span className="truncate">{title}</span>
+          <span className="flex-1" />
+          <button ref={close} type="button" onClick={onClose} aria-label="Close README window"
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted-strong hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+        <pre data-lenis-prevent tabIndex={0}
+          className="m-0 flex-1 overflow-auto whitespace-pre-wrap break-words bg-card p-6 font-mono text-[13px] leading-relaxed text-body sm:px-10">{text}</pre>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function Readme({ owner, name, data, onError }) {
   const [content, setContent] = useState('');
   const [busy, setBusy] = useState('');
+  const [full, setFull] = useState(false);
+  const closeWindow = useCallback(() => setFull(false), []);  // stable, so the window's effect runs once
   const { repo, readme } = data;
+  // More than the fixed box shows (about 16 lines): offer to open it in a full-size window.
+  const long = readme.exists && (readme.text.split('\n').length > 16 || readme.text.length > 1200);
 
   const run = (label, fn) => async () => {
     setBusy(label);
@@ -259,10 +302,19 @@ function Readme({ owner, name, data, onError }) {
   return readme.exists ? (
     <div className="space-y-4">
       <h2>README.md exists</h2>
-      <pre className="code max-h-96">{readme.text.split('\n').slice(0, 40).join('\n')}</pre>
-      <button type="button" className="btn btn-danger" disabled={Boolean(busy)} onClick={propose('delete_readme')}>
-        Preview deleting README.md
-      </button>
+      <pre className="code bg-card text-body h-96 min-h-40 resize-y overflow-auto whitespace-pre-wrap break-words"
+        tabIndex={0} aria-label="README.md contents (drag the corner to resize)">{readme.text}</pre>
+      <div className="flex flex-wrap gap-3">
+        {long && (
+          <button type="button" className="btn" onClick={() => setFull(true)}>
+            <Maximize2 className="size-4" aria-hidden="true" />Open in a window
+          </button>
+        )}
+        <button type="button" className="btn btn-danger" disabled={Boolean(busy)} onClick={propose('delete_readme')}>
+          Preview deleting README.md
+        </button>
+      </div>
+      {full && <ReadmeWindow title={`${owner}/${name} · README.md`} text={readme.text} onClose={closeWindow} />}
     </div>
   ) : (
     <div className="space-y-4">

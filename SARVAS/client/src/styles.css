@@ -132,7 +132,7 @@
   .label { @apply font-mono text-xs font-medium uppercase tracking-[0.08em]; }
   .tag { @apply inline-flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-0.5 font-mono text-xs text-foreground; }
   .field {
-    @apply w-full rounded-md border bg-dark-soft px-3.5 py-2.5 text-foreground placeholder:text-muted-foreground/70
+    @apply w-full rounded-md border bg-card px-3.5 py-2.5 text-foreground placeholder:text-muted-foreground/70
       focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/20;
   }
   .muted { @apply text-muted-foreground; }
