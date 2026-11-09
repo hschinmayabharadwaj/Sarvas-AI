@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { api, getSession } from './api.js';
-import { Link, match, navigate, usePath } from './router.jsx';
+import { Link, UserBase, canonical, match, navigate, setClientBase, usePath } from './router.jsx';
 import CommandBar from './components/CommandBar.jsx';
 import Footer from './components/Footer.jsx';
 import HelpConsole from './components/HelpConsole.jsx';
@@ -33,16 +33,25 @@ export default function App({ initial }) {
   const path = usePath(initial?.path);
   const [session, setSession] = useState(initial?.session ?? null);
   const [error, setError] = useState('');
+  const route = match(path, session?.login);
+  const base = session?.signedIn ? `/${encodeURIComponent(session.login)}` : '';
+  if (typeof window !== 'undefined') setClientBase(base);
   // Server-fetched data belongs to the first page only; dropped on the first navigation.
-  const [ssrPath, setSsrPath] = useState(initial?.path);
+  // Keyed by the path without the /<login> prefix, so the prefix rewrite below keeps it.
+  const [ssrRest, setSsrRest] = useState(() => initial && match(initial.path, initial.session?.login).rest);
 
   const refresh = useCallback(() => getSession().then(setSession).catch((e) => setError(e.message)), []);
   useEffect(() => { if (!initial) refresh(); }, [initial, refresh]);
   useEffect(() => {
     setError('');
     scrollToTop();
-    if (path !== initial?.path) setSsrPath(null);
-  }, [path, initial]);
+    setSsrRest((s) => (s === route.rest ? s : null));
+  }, [route.rest]);
+  // Signed in: show /<login>/… in the address bar (after sign-in "/", old links like /tasks/7).
+  const want = canonical(path, route, base);
+  useEffect(() => {
+    if (want) navigate(want + window.location.search + window.location.hash, { replace: true });
+  }, [want]);
 
   // Shared error handler for pages: a signed-out response returns to Connect.
   const onError = useCallback((e) => {
@@ -58,7 +67,6 @@ export default function App({ initial }) {
     );
   }
 
-  const route = match(path);
   const query = new URLSearchParams(typeof window === 'undefined' ? initial.search : window.location.search);
   if (!session.signedIn) {
     // Privacy and 404 are public; every other app page needs sign-in first.
@@ -81,9 +89,9 @@ export default function App({ initial }) {
 
   const isAdmin = session.role === 'admin';
   let page;
-  if (route.page === 'repo') page = <Repo key={path} owner={route.owner} name={route.name} onError={onError} />;
-  else if (route.page === 'proposal') page = <Proposal key={path} id={route.id} actions={session.actions} onError={onError} />;
-  else if (route.page === 'task') page = <Task key={path} id={route.id} onError={onError} />;
+  if (route.page === 'repo') page = <Repo key={route.rest} owner={route.owner} name={route.name} onError={onError} />;
+  else if (route.page === 'proposal') page = <Proposal key={route.rest} id={route.id} actions={session.actions} onError={onError} />;
+  else if (route.page === 'task') page = <Task key={route.rest} id={route.id} onError={onError} />;
   else if (route.page === 'tasks') page = <Tasks onError={onError} />;
   else if (route.page === 'activity') page = <Activity onError={onError} />;
   else if (route.page === 'admin' && isAdmin) page = <Admin onError={onError} />;
@@ -92,13 +100,14 @@ export default function App({ initial }) {
   else page = <Dashboard onError={onError} installUrl={session.installUrl} />;
 
   const logout = async () => {
-    try { await api.logout(); } finally { navigate('/'); refresh(); }
+    try { await api.logout(); } finally { window.location.assign('/'); }
   };
 
   return (
-    <ServerData.Provider value={path === ssrPath ? initial.data : NO_DATA}>
+    <UserBase.Provider value={base}>
+    <ServerData.Provider value={route.rest === ssrRest ? initial.data : NO_DATA}>
     <div className="flex min-h-dvh flex-col">
-      <Header path={path} login={session.login} isAdmin={isAdmin} onLogout={logout} />
+      <Header path={route.rest} login={session.login} isAdmin={isAdmin} onLogout={logout} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
         <AnimatePresence>
           {error && (
@@ -119,6 +128,7 @@ export default function App({ initial }) {
       <Analytics />
     </div>
     </ServerData.Provider>
+    </UserBase.Provider>
   );
 }
 
@@ -157,6 +167,8 @@ function Header({ path, login, isAdmin, onLogout }) {
         <div className="flex-1" />
         <CommandBar isAdmin={isAdmin} className="hidden w-60 sm:block lg:w-72" />
         <span className="hidden text-sm text-muted-foreground lg:inline">@{login}</span>
+        {/* Demo visitors switch accounts here; /auth/login starts a fresh session. Same name as DEMO_LOGIN on the server. */}
+        {login === 'demo visitor' && <a href="/auth/login" className="btn btn-primary h-9 px-3.5">Sign in with GitHub</a>}
         <button type="button" className="btn btn-ghost px-2" onClick={onLogout} title="Disconnect">
           <LogOut className="size-4" aria-hidden="true" /><span className="sr-only sm:not-sr-only">Disconnect</span>
         </button>

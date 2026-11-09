@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { withBase } from './routes.js';
 
-// Minimal pushState router (no dependency).
-export function navigate(to) {
-  window.history.pushState({}, '', to);
+export { canonical, match, withBase } from './routes.js';
+
+// "/<login>" while signed in. Links read it from context (the server renders for many users at once);
+// navigate() runs only in the browser, where one user is signed in, so a module variable will do.
+export const UserBase = createContext('');
+let clientBase = '';
+export function setClientBase(base) { clientBase = base; }
+
+// Minimal pushState router (no dependency). App paths like /tasks get the user's /<login> prefix.
+export function navigate(to, { replace = false } = {}) {
+  window.history[replace ? 'replaceState' : 'pushState']({}, '', withBase(clientBase, to));
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
@@ -17,27 +26,13 @@ export function usePath(initial) {
   return path;
 }
 
-export function match(path) {
-  let m;
-  if ((m = path.match(/^\/repos\/([^/]+)\/([^/]+)\/?$/))) {
-    return { page: 'repo', owner: decodeURIComponent(m[1]), name: decodeURIComponent(m[2]) };
-  }
-  if ((m = path.match(/^\/changes\/([^/]+)\/?$/))) return { page: 'proposal', id: decodeURIComponent(m[1]) };
-  if ((m = path.match(/^\/tasks\/([^/]+)\/?$/))) return { page: 'task', id: decodeURIComponent(m[1]) };
-  if (path === '/tasks') return { page: 'tasks' };
-  if (path === '/activity') return { page: 'activity' };
-  if (path === '/admin') return { page: 'admin' };
-  if (path === '/privacy') return { page: 'privacy' };
-  if (path === '/') return { page: 'home' };
-  return { page: 'notFound' };
-}
-
 export function Link({ to, children, className }) {
+  const href = withBase(useContext(UserBase), to);
   return (
-    <a href={to} className={className} onClick={(e) => {
+    <a href={href} className={className} onClick={(e) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       e.preventDefault();
-      navigate(to);
+      navigate(href);
     }}>{children}</a>
   );
 }

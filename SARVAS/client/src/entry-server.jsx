@@ -38,7 +38,7 @@ export async function render(url, cookie, apiBase, template) {
   };
   const { pathname, search } = new URL(url, 'http://localhost');
   const session = await get('/api/session');
-  const route = match(pathname);
+  const route = match(pathname, session.login);
   const data = {};
   if (session.signedIn) {
     // A failed call is left out; that page then fetches it in the browser and shows the error there.
