@@ -44,6 +44,7 @@ export default function Repo({ owner, name, onError }) {
       </header>
       <SmoothTab
         label="Repository tools"
+        className="max-w-none"
         value={tab}
         onChange={setTab}
         items={[
@@ -250,7 +251,7 @@ function ReadmeWindow({ title, text, onClose }) {
     };
   }, [onClose]);
 
-  // Portal to <body>: the tab panel is transformed, which would trap `fixed` inside it.
+  // Portal to <body>, so `fixed` covers the viewport whatever ancestor styles apply.
   return createPortal(
     <div className="fixed inset-0 z-50 bg-dark/50 p-3 sm:p-6" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={title}

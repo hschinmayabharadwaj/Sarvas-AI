@@ -3,17 +3,6 @@ import { animate, useMotionValue } from "motion/react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-// Past the first or last tab the panel moves this fraction of the drag.
-const RUBBER_BAND = 0.35;
-// A release this fast (px per ms) changes tab however short the drag was.
-const SWIPE_VELOCITY = 0.11;
-// Movement before deciding between a horizontal swipe and a vertical scroll.
-const AXIS_LOCK = 6;
-// Release velocity is measured over the last stretch of the drag only.
-const VELOCITY_WINDOW = 100;
-// A panel one full width away sits at this opacity, so the neighbour reads
-// as "next" while it slides in.
-const NEIGHBOUR_OPACITY = 0.35;
 // Just under critical damping: a firm settle, a hint of overshoot only after
 // a fast flick.
 const SPRING = {
@@ -51,17 +40,6 @@ function indicatorRect(rects, progress) {
     }
   }
   return { left, width, top: a.top, height: a.height };
-}
-
-/** Rubber-bands a raw position that runs past the first or last tab. */
-function rubberBand(raw, last) {
-  if (raw < 0) {
-    return raw * RUBBER_BAND;
-  }
-  if (raw > last) {
-    return last + (raw - last) * RUBBER_BAND;
-  }
-  return raw;
 }
 
 function Stat({
@@ -216,42 +194,24 @@ export default function SmoothTab({
     value === undefined
       ? clamp(uncontrolled, 0, Math.max(count - 1, 0))
       : indexOf(value);
-  // Captured once, so React never rewrites the imperatively painted styles.
-  const [initial] = useState(selected);
-
-  // Fractional tab position: 0 … count - 1, beyond while rubber-banding.
-  // It drives the panel track, the indicator and the label clip directly,
-  // so a drag never re-renders React.
+  // Fractional tab position: 0 … count - 1. It drives the indicator and the
+  // label clip directly, without re-rendering React.
   const progress = useMotionValue(selected);
 
   const baseId = useId();
   const tablistRef = useRef(null);
   const overlayRef = useRef(null);
-  const trackRef = useRef(null);
   const tabRefs = useRef([]);
-  const panelRefs = useRef([]);
   const rects = useRef([]);
   const size = useRef({ width: 0, height: 0 });
   const anim = useRef(null);
   const target = useRef(selected);
-  const drag = useRef(null);
-  const suppressClick = useRef(false);
   const reducedMotion = useRef(false);
   const latest = useRef({ count, items, selected, onChange });
   latest.current = { count, items, selected, onChange };
 
   const paint = useCallback(
     (p) => {
-      const track = trackRef.current;
-      if (track) {
-        track.style.transform = `translate3d(${(-p * 100) / count}%, 0, 0)`;
-      }
-      panelRefs.current.forEach((panel, i) => {
-        if (panel) {
-          const d = Math.min(Math.abs(p - i), 1);
-          panel.style.opacity = String(1 - d * (1 - NEIGHBOUR_OPACITY));
-        }
-      });
       const overlay = overlayRef.current;
       const r = indicatorRect(rects.current, p);
       if (overlay && r) {
@@ -260,7 +220,7 @@ export default function SmoothTab({
         overlay.style.clipPath = `inset(${r.top}px ${right}px ${bottom}px ${r.left}px round ${r.height / 2}px)`;
       }
     },
-    [count]
+    []
   );
 
   // Measure the tabs before paint, and again on resize and font load.
@@ -351,7 +311,7 @@ export default function SmoothTab({
 
   // A controlled `value` changed from outside: follow it.
   useEffect(() => {
-    if (selected !== target.current && !drag.current) {
+    if (selected !== target.current) {
       settle(selected);
     }
   }, [selected, settle]);
@@ -371,95 +331,6 @@ export default function SmoothTab({
     tabRefs.current[next]?.focus();
     // A held key repeats faster than any spring settles: jump instead.
     select(next, { instant: e.repeat });
-  };
-
-  const onPointerDown = (e) => {
-    // Swipe is a touch gesture; a mouse drag here means selecting text.
-    if (count < 2 || e.pointerType === "mouse" || e.target.closest?.("input, textarea, select, pre, a, button")) {
-      return;
-    }
-    drag.current = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startProgress: progress.get(),
-      axis: null,
-      width: e.currentTarget.clientWidth || 1,
-      samples: [{ x: e.clientX, t: e.timeStamp }],
-    };
-  };
-
-  const lockAxis = (current, e) => {
-    const dx = e.clientX - current.startX;
-    const dy = e.clientY - current.startY;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < AXIS_LOCK) {
-      return;
-    }
-    // Vertical wins ties: the page scroll is what most people are after.
-    current.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-    if (current.axis === "x") {
-      // Catch the panel mid-flight, and keep the swipe alive when the
-      // pointer leaves the panel.
-      anim.current?.stop();
-      current.startProgress = progress.get();
-      current.startX = e.clientX;
-      current.samples = [{ x: e.clientX, t: e.timeStamp }];
-      e.currentTarget.setPointerCapture(e.pointerId);
-      e.currentTarget.dataset.dragging = "";
-    }
-  };
-
-  const onPointerMove = (e) => {
-    const current = drag.current;
-    if (!current || current.pointerId !== e.pointerId) {
-      return;
-    }
-    if (current.axis === null) {
-      lockAxis(current, e);
-    }
-    if (current.axis !== "x") {
-      return;
-    }
-    current.samples.push({ x: e.clientX, t: e.timeStamp });
-    while (
-      current.samples.length > 2 &&
-      e.timeStamp - current.samples[0].t > VELOCITY_WINDOW
-    ) {
-      current.samples.shift();
-    }
-    const raw =
-      current.startProgress - (e.clientX - current.startX) / current.width;
-    progress.set(rubberBand(raw, count - 1));
-  };
-
-  const endDrag = (e, cancelled) => {
-    const current = drag.current;
-    if (!current || current.pointerId !== e.pointerId) {
-      return;
-    }
-    drag.current = null;
-    delete e.currentTarget.dataset.dragging;
-    if (current.axis !== "x") {
-      return;
-    }
-    // Swallow the click this release may send. A touch swipe sends none,
-    // so the flag clears on the next tick instead of eating a later tap.
-    if (!cancelled) {
-      suppressClick.current = true;
-      window.setTimeout(() => {
-        suppressClick.current = false;
-      }, 0);
-    }
-    const first = current.samples[0];
-    // px per ms; negative is a swipe towards the next tab.
-    const vx = (e.clientX - first.x) / Math.max(e.timeStamp - first.t, 1);
-    const p = progress.get();
-    let next = Math.round(p);
-    if (!cancelled && Math.abs(vx) > SWIPE_VELOCITY) {
-      next = vx < 0 ? Math.floor(p) + 1 : Math.ceil(p) - 1;
-    }
-    // The spring starts at the finger's speed, so the hand-off is seamless.
-    select(next, { velocity: (-vx * 1000) / current.width });
   };
 
   const tabId = (i) => `${baseId}-tab-${i}`;
@@ -533,50 +404,22 @@ export default function SmoothTab({
         </div>
       </div>
 
-      <div
-        className="relative touch-pan-y overflow-hidden rounded-lg border bg-card data-dragging:cursor-grabbing data-dragging:select-none"
-        onClickCapture={(e) => {
-          if (suppressClick.current) {
-            suppressClick.current = false;
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }}
-        onLostPointerCapture={(e) => endDrag(e, false)}
-        onPointerCancel={(e) => endDrag(e, true)}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={(e) => endDrag(e, false)}
-      >
-        <div
-          className="flex will-change-transform"
-          ref={trackRef}
-          style={{
-            width: `${count * 100}%`,
-            transform: `translate3d(${(-initial * 100) / count}%, 0, 0)`,
-          }}
-        >
-          {items.map((item, i) => (
-            <div
-              aria-labelledby={tabId(i)}
-              className="min-h-[220px] p-6 sm:p-8 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
-              id={panelId(i)}
-              inert={i !== selected}
-              key={item.id}
-              ref={(el) => {
-                panelRefs.current[i] = el;
-              }}
-              role="tabpanel"
-              style={{
-                width: `${100 / count}%`,
-                opacity: i === initial ? 1 : NEIGHBOUR_OPACITY,
-              }}
-              tabIndex={i === selected ? 0 : -1}
-            >
-              {item.content}
-            </div>
-          ))}
-        </div>
+      <div className="overflow-hidden rounded-lg border bg-card">
+        {/* Only the selected panel shows; the others stay mounted (hidden) so
+            a half-typed question or request survives a tab switch. */}
+        {items.map((item, i) => (
+          <div
+            aria-labelledby={tabId(i)}
+            className="min-h-[220px] p-6 sm:p-8 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
+            hidden={i !== selected}
+            id={panelId(i)}
+            key={item.id}
+            role="tabpanel"
+            tabIndex={0}
+          >
+            {item.content}
+          </div>
+        ))}
       </div>
     </div>
   );
