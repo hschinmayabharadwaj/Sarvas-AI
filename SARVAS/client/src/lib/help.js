@@ -14,7 +14,7 @@ const FAQ = [
       + 'of every sign-in, proposal, refusal and approval.',
   },
   {
-    keys: ['sign', 'signin', 'login', 'log', 'account', 'github', 'oauth', 'password', 'connect'],
+    keys: ['sign', 'signin', 'login', 'log', 'account', 'github', 'oauth', 'password', 'connect', 'register'],
     answer: "Choose Connect GitHub. SARVAS uses GitHub's own sign-in, so it never sees or asks for your password. "
       + "Your GitHub account must be on this site's list of allowed users. If it isn't, ask an administrator to "
       + 'add your GitHub username.',
@@ -66,21 +66,78 @@ const FAQ = [
     answer: 'Open a repository and use the README tab to add or delete a README.md. You see the exact diff '
       + 'first, and the change goes through a pull request too.',
   },
+  {
+    keys: ['signout', 'logout', 'delete', 'remove', 'revoke', 'uninstall'],
+    answer: 'Use Sign out in the top bar to end your session. To remove SARVAS from repositories, uninstall or '
+      + "edit the GitHub App in your GitHub settings. To have your account data deleted, ask this site's administrator.",
+  },
+  {
+    keys: ['cost', 'price', 'pricing', 'free', 'pay', 'paid', 'billing'],
+    answer: "Pricing depends on who runs this SARVAS site. It runs on the site owner's own AI provider account, "
+      + 'so ask your administrator about limits or costs.',
+  },
+  {
+    keys: ['language', 'languages', 'python', 'javascript', 'typescript', 'java', 'golang', 'framework', 'stack'],
+    answer: 'SARVAS reads any text-based code in a repository, whatever the language. For changes, it runs the '
+      + "repository's own checks (tests, linters, builds) in the sandbox, so it works best where those exist.",
+  },
+  {
+    keys: ['test', 'tests', 'check', 'checks', 'sandbox', 'lint', 'ci'],
+    answer: "Every change is made in an isolated sandbox, never on your servers or your default branch. SARVAS runs "
+      + "the repository's checks there and shows you the results with the diff before any pull request is opened.",
+  },
+  {
+    keys: ['contact', 'support', 'error', 'broken', 'issue', 'problem', 'stuck', 'fail', 'failed'],
+    answer: "If something isn't working, try reloading or signing in again. Failed tasks show their reason on the "
+      + "task page. For anything else, contact this site's administrator.",
+  },
+  // Generic words last, so a specific topic wins a tie ("how do I use the demo" → demo).
+  {
+    keys: ['work', 'works', 'start', 'started', 'begin', 'use', 'about', 'steps', 'flow'],
+    answer: 'Connect GitHub and install the GitHub App on your repositories. Then open a repository: use Ask to '
+      + 'get answers about its code, or "Request a change" to describe a fix or feature. SARVAS plans it, makes it '
+      + 'in a sandbox, runs the checks and opens a pull request for your engineers to review and merge.',
+  },
 ];
+
+// Small talk, checked only when no topic matches: "hi, how do I sign in?" gets the sign-in answer.
+const CHAT = [
+  { re: /\b(thanks?|thank you|thx|ty|cheers)\b/, answer: "You're welcome! Ask me anything else about SARVAS." },
+  { re: /\b(bye|goodbye|see you|cya)\b/, answer: 'Bye! Open Ask SARVAS again whenever you need it.' },
+  { re: /\b(help|who are you|what are you|what can you|what do you|how can you|capabilit|options|menu)/, answer: null },
+  { re: /^(hi+|hey+|hello+|hiya|yo|sup|namaste|hola|good (morning|afternoon|evening)|greetings)\b/, answer: null },
+];
+
+const TOPICS = 'I can explain what SARVAS is, signing in, the demo, asking questions about a repository, requesting '
+  + 'changes, pull requests, roles and risk, checks, and privacy. What would you like to know?';
 
 export const OUTSIDE_CONTEXT = "That question is outside the context of SARVAS, so I can't answer it. I can help "
   + 'with signing in, the demo, asking about a repository, requesting changes, pull requests, roles and risk, '
   + 'and privacy. For questions about your own code, open a repository and use Ask.';
 
-const hits = (words, key) => words.some((w) => w === key || (key.length >= 4 && w.startsWith(key)));
+// One edit (insert, delete, swap two neighbours or change a letter): catches "sigin", "reqest", "privcy".
+function oneEdit(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && a[i] === b[i]) i += 1;
+  const swapped = a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2);
+  return swapped || a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i);
+}
+
+const hits = (words, key) => words.some((w) => w === key || (key.length >= 4 && w.startsWith(key))
+  || (key.length >= 5 && w.length >= 4 && oneEdit(w, key)));
 
 export function answerHelp(question) {
-  const words = question.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const text = question.toLowerCase().replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = text.split(/[^a-z]+/).filter(Boolean);
   let best = null;
   let bestScore = 0;
   for (const entry of FAQ) {
     const score = entry.keys.filter((k) => hits(words, k)).length;
     if (score > bestScore) { best = entry; bestScore = score; }
   }
-  return best ? { status: 'answered', answer: best.answer } : { status: 'outside_context', answer: OUTSIDE_CONTEXT };
+  if (best) return { status: 'answered', answer: best.answer };
+  const chat = CHAT.find((c) => c.re.test(text));
+  if (chat) return { status: 'answered', answer: chat.answer ?? `Hi! I'm the SARVAS help assistant. ${TOPICS}` };
+  return { status: 'outside_context', answer: OUTSIDE_CONTEXT };
 }
