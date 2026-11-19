@@ -2,7 +2,7 @@ module sarvas
 
 go 1.25.0
 
-require github.com/modal-labs/modal-client/go v0.11.1
+require github.com/modal-labs/modal-client/go v0.11.2
 
 require (
 	github.com/aristanetworks/gomap v0.0.0-20230726210543-f4e41046dced // indirect
