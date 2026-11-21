@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api.js';
 import Markdown from '../components/Markdown.jsx';
+import ReadmeView from '../components/ReadmeView.jsx';
 import { PageLoading } from '../components/Skeleton.jsx';
 import ShimmerText from '../components/kokonutui/shimmer-text';
 import SmoothTab from '../components/kokonutui/smooth-tab';
@@ -236,7 +237,7 @@ function Build({ owner, name, onError, initial = '' }) {
 }
 
 // Nearly full-screen window for reading a long README: title bar, close button, Escape closes.
-function ReadmeWindow({ title, text, onClose }) {
+function ReadmeWindow({ title, onClose, children }) {
   const close = useRef(null);
   useEffect(() => {
     const opener = document.activeElement;
@@ -265,8 +266,7 @@ function ReadmeWindow({ title, text, onClose }) {
             <X className="size-4" />
           </button>
         </div>
-        <pre data-lenis-prevent tabIndex={0}
-          className="m-0 flex-1 overflow-auto whitespace-pre-wrap break-words bg-card p-6 font-mono text-[13px] leading-relaxed text-body sm:px-10">{text}</pre>
+        <div data-lenis-prevent tabIndex={0} className="flex-1 overflow-auto bg-card p-6 sm:px-10">{children}</div>
       </div>
     </div>,
     document.body,
@@ -303,8 +303,10 @@ function Readme({ owner, name, data, onError }) {
   return readme.exists ? (
     <div className="space-y-4">
       <h2>README.md exists</h2>
-      <pre className="code bg-card text-body h-96 min-h-40 resize-y overflow-auto whitespace-pre-wrap break-words"
-        tabIndex={0} aria-label="README.md contents (drag the corner to resize)">{readme.text}</pre>
+      <div data-lenis-prevent className="h-96 min-h-40 resize-y overflow-auto rounded-lg border bg-card px-6 py-4"
+        tabIndex={0} aria-label="README.md contents (drag the corner to resize)">
+        <ReadmeView owner={owner} name={name} text={readme.text} />
+      </div>
       <div className="flex flex-wrap gap-3">
         {long && (
           <button type="button" className="btn" onClick={() => setFull(true)}>
@@ -315,7 +317,11 @@ function Readme({ owner, name, data, onError }) {
           Preview deleting README.md
         </button>
       </div>
-      {full && <ReadmeWindow title={`${owner}/${name} · README.md`} text={readme.text} onClose={closeWindow} />}
+      {full && (
+        <ReadmeWindow title={`${owner}/${name} · README.md`} onClose={closeWindow}>
+          <ReadmeView owner={owner} name={name} text={readme.text} />
+        </ReadmeWindow>
+      )}
     </div>
   ) : (
     <div className="space-y-4">
