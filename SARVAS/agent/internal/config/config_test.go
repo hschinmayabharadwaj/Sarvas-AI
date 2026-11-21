@@ -87,6 +87,17 @@ func TestOllamaNeedsAModel(t *testing.T) {
 	}
 }
 
+func TestNamedVendorBecomesRemoteOpenAI(t *testing.T) {
+	t.Setenv("AI_PROVIDER", "deepseek")
+	t.Setenv("AI_MODEL", "deepseek-chat")
+	t.Setenv("AI_BASE_URL", "")
+	t.Setenv("AI_SEND_CODE", "")
+	cfg, err := Load(write(t, `{"ai":{"provider":"sim"}}`))
+	if err != nil || cfg.AI.Provider != "openai" || cfg.AI.BaseURL != "https://api.deepseek.com/v1" || !cfg.AI.Remote() || cfg.AI.CodeAllowed() {
+		t.Fatalf("%+v %v", cfg.AI, err)
+	}
+}
+
 func TestRemoteProviderNeedsConsentForCode(t *testing.T) {
 	ai := AI{Provider: "gemini"}
 	if ai.CodeAllowed() {

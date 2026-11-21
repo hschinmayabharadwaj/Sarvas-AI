@@ -118,6 +118,24 @@ func TestNewProvider(t *testing.T) {
 	if p := New("openai", "k", "m", "https://x/v1"); p == nil || p.Name() != "openai" {
 		t.Error("openai")
 	}
+	if p, ok := New("DeepSeek", "k", "m", "").(*OpenAI); !ok || p.BaseURL != "https://api.deepseek.com/v1" {
+		t.Errorf("named vendor: %+v", p)
+	}
+}
+
+func TestResolveAnyProvider(t *testing.T) {
+	for _, c := range []struct{ in, url, wantP, wantURL string }{
+		{"claude", "", "openai", "https://api.anthropic.com/v1"},
+		{"himesh", "https://llm.example/v1", "openai", "https://llm.example/v1"}, // unknown vendor, own endpoint
+		{"groq", "https://proxy/v1", "openai", "https://proxy/v1"},               // explicit URL wins
+		{"himesh", "", "himesh", ""},                                             // nowhere to send it: left for validation
+		{"gemini", "", "gemini", ""},
+		{"ollama", "http://x", "ollama", "http://x"},
+	} {
+		if p, u := Resolve(c.in, c.url); p != c.wantP || u != c.wantURL {
+			t.Errorf("Resolve(%q, %q) = %q, %q", c.in, c.url, p, u)
+		}
+	}
 }
 
 // Baseten, Fireworks and vLLM-on-Modal all speak this streaming shape.
