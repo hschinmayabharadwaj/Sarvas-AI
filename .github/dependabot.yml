@@ -45,14 +45,3 @@ updates:
       server-major:
         patterns: ["*"]
         update-types: [major]
-
-  # Keeps the action versions in .github/workflows/ci.yml current.
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: cron
-      cronjob: "0 9 */3 * *" # every 3 days at 09:00
-      timezone: Asia/Kolkata
-    groups:
-      actions:
-        patterns: ["*"]
