@@ -11,10 +11,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"sarvas/internal/ai"
 )
 
 type AI struct {
-	Provider string `json:"provider"` // "gemini" | "openai" (any OpenAI-compatible API) | "ollama" (self-hosted) | "sim" (offline)
+	Provider string `json:"provider"` // "gemini" | "ollama" (self-hosted) | "sim" (offline) | "openai" or any vendor name, e.g. "deepseek" (OpenAI-compatible API; see ai.Resolve)
 	APIKey   string `json:"apiKey"`
 	Model    string `json:"model"`
 	BaseURL  string `json:"baseUrl"` // ollama (http://127.0.0.1:11434) or openai (https://api.fireworks.ai/inference/v1)
@@ -225,6 +227,9 @@ func Load(path string) (Config, error) {
 	if v := os.Getenv("OLLAMA_URL"); v != "" && cfg.AI.BaseURL == "" {
 		cfg.AI.BaseURL = v
 	}
+	// "deepseek", "claude", … become the OpenAI-compatible provider plus its
+	// endpoint, so the sandbox, network rules and consent checks treat them alike.
+	cfg.AI.Provider, cfg.AI.BaseURL = ai.Resolve(cfg.AI.Provider, cfg.AI.BaseURL)
 	if v := os.Getenv("AI_MODEL"); v != "" {
 		cfg.AI.Model = v
 	}
@@ -291,7 +296,7 @@ func (c Config) Validate() error {
 			return errors.New("ai.provider openai needs ai.baseUrl (AI_BASE_URL, e.g. https://api.fireworks.ai/inference/v1) and ai.model (AI_MODEL)")
 		}
 	default:
-		return fmt.Errorf("ai.provider must be gemini, openai, ollama or sim, got %q", c.AI.Provider)
+		return fmt.Errorf("unknown ai.provider %q: set ai.baseUrl (AI_BASE_URL) to its OpenAI-compatible endpoint, or use gemini, openai, ollama or sim", c.AI.Provider)
 	}
 	if c.Sandbox.Backend != "docker" && c.Sandbox.Backend != "modal" {
 		return fmt.Errorf("sandbox.backend must be docker or modal, got %q", c.Sandbox.Backend)

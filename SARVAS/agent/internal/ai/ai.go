@@ -307,8 +307,44 @@ func post(ctx context.Context, client *http.Client, url, what string, body []byt
 	}
 }
 
+// OpenAICompatible maps vendor names to their OpenAI-compatible endpoint, so
+// ai.provider can simply name the vendor. Any other vendor works too: give
+// its endpoint in ai.baseUrl (AI_BASE_URL).
+var OpenAICompatible = map[string]string{
+	"anthropic":  "https://api.anthropic.com/v1",
+	"claude":     "https://api.anthropic.com/v1",
+	"deepseek":   "https://api.deepseek.com/v1",
+	"groq":       "https://api.groq.com/openai/v1",
+	"mistral":    "https://api.mistral.ai/v1",
+	"xai":        "https://api.x.ai/v1",
+	"openrouter": "https://openrouter.ai/api/v1",
+	"together":   "https://api.together.xyz/v1",
+	"fireworks":  "https://api.fireworks.ai/inference/v1",
+	"baseten":    "https://inference.baseten.co/v1",
+}
+
+// Resolve turns any provider name into one New understands. gemini, ollama
+// and sim keep their native APIs; every other name is spoken to in the OpenAI
+// chat format, at baseURL if set, else at the vendor's known endpoint. An
+// unknown name with no endpoint comes back unchanged so validation rejects it.
+func Resolve(provider, baseURL string) (string, string) {
+	p := strings.ToLower(strings.TrimSpace(provider))
+	switch p {
+	case "gemini", "ollama", "sim", "openai", "":
+		return p, baseURL
+	}
+	if baseURL == "" {
+		baseURL = OpenAICompatible[p]
+	}
+	if baseURL == "" {
+		return p, ""
+	}
+	return "openai", baseURL
+}
+
 // New returns the configured provider, or nil for the offline "sim" provider.
 func New(provider, apiKey, model, baseURL string) Provider {
+	provider, baseURL = Resolve(provider, baseURL)
 	switch provider {
 	case "gemini":
 		return &Gemini{APIKey: apiKey, Model: model}

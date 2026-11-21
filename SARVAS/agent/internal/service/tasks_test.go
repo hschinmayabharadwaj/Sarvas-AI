@@ -200,23 +200,33 @@ func TestDailyBuildLimit(t *testing.T) {
 	srv := httptest.NewServer(s.Handler())
 	defer srv.Close()
 	body := `{"owner":"o","name":"r","baseBranch":"main","request":"Add a greeting","requester":"bob"}`
+	var ids []any
 	for i := 0; i < 2; i++ {
-		if resp, _ := post(t, srv.URL+"/v1/tasks", token, body); resp.StatusCode != 202 {
+		resp, out := post(t, srv.URL+"/v1/tasks", token, body)
+		if resp.StatusCode != 202 {
 			t.Fatalf("task %d: %d", i, resp.StatusCode)
 		}
+		ids = append(ids, out["id"])
 	}
 	if resp, out := post(t, srv.URL+"/v1/tasks", token, body); resp.StatusCode != 429 ||
 		!strings.Contains(out["error"].(string), "Daily Build limit") {
 		t.Fatalf("third daily build must be limited: %d %v", resp.StatusCode, out)
 	}
 	// Another user still has quota, and anonymous requests bypass the counter.
-	if resp, _ := post(t, srv.URL+"/v1/tasks", token,
-		`{"owner":"o","name":"r","baseBranch":"main","request":"x","requester":"alice"}`); resp.StatusCode != 202 {
+	resp, out := post(t, srv.URL+"/v1/tasks", token,
+		`{"owner":"o","name":"r","baseBranch":"main","request":"x","requester":"alice"}`)
+	if resp.StatusCode != 202 {
 		t.Fatalf("other user: %d", resp.StatusCode)
 	}
-	if resp, _ := post(t, srv.URL+"/v1/tasks", token,
-		`{"owner":"o","name":"r","baseBranch":"main","request":"x"}`); resp.StatusCode != 202 {
+	ids = append(ids, out["id"])
+	resp, out = post(t, srv.URL+"/v1/tasks", token, `{"owner":"o","name":"r","baseBranch":"main","request":"x"}`)
+	if resp.StatusCode != 202 {
 		t.Fatalf("anonymous: %d", resp.StatusCode)
+	}
+	ids = append(ids, out["id"])
+	// Let the planners finish, or they still write to WorkRoot while t.TempDir is removed.
+	for _, id := range ids {
+		waitFor(t, srv.URL+"/v1/tasks/"+jsonNum(id), "awaiting_plan_approval")
 	}
 }
 
