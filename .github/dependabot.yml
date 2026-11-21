@@ -1,19 +1,58 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
+# Dependabot opens pull requests that update dependencies.
+# Updates are grouped so each part of the project gets at most two PRs every 3 days:
+# one for all minor/patch updates (usually safe; merge when CI is green) and
+# one for major updates (may need code changes; review before merging).
 version: 2
 updates:
-  - package-ecosystem: "gomod"
-    directory: "/SARVAS/agent"
+  - package-ecosystem: gomod
+    directory: /SARVAS/agent
     schedule:
-      interval: "weekly"
-  - package-ecosystem: "npm"
-    directory: "/SARVAS/client"
+      interval: cron
+      cronjob: "0 9 */3 * *" # every 3 days at 09:00
+      timezone: Asia/Kolkata
+    groups:
+      go-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      go-major:
+        patterns: ["*"]
+        update-types: [major]
+
+  - package-ecosystem: npm
+    directory: /SARVAS/client
     schedule:
-      interval: "weekly"
-  - package-ecosystem: "pip"
-    directory: "/SARVAS/server"
+      interval: cron
+      cronjob: "0 9 */3 * *" # every 3 days at 09:00
+      timezone: Asia/Kolkata
+    groups:
+      client-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      client-major:
+        patterns: ["*"]
+        update-types: [major]
+
+  - package-ecosystem: pip
+    directory: /SARVAS/server
     schedule:
-      interval: "weekly"
+      interval: cron
+      cronjob: "0 9 */3 * *" # every 3 days at 09:00
+      timezone: Asia/Kolkata
+    groups:
+      server-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      server-major:
+        patterns: ["*"]
+        update-types: [major]
+
+  # Keeps the action versions in .github/workflows/ci.yml current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: cron
+      cronjob: "0 9 */3 * *" # every 3 days at 09:00
+      timezone: Asia/Kolkata
+    groups:
+      actions:
+        patterns: ["*"]
