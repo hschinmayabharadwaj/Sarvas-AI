@@ -141,6 +141,24 @@
   .table td { @apply border-t py-3 pr-3 align-top; }
   .md p { @apply my-1.5; }
   .md ul { @apply my-1.5 list-disc pl-5; }
+  /* A repository README (components/ReadmeView.jsx). */
+  .readme { overflow-wrap: break-word; }
+  .readme > :first-child { @apply mt-0; }
+  .readme :is(h1, h2, h3, h4, h5, h6) { @apply mt-6 mb-2 font-display font-semibold text-foreground; }
+  .readme h1 { @apply border-b pb-2 text-2xl; }
+  .readme h2 { @apply border-b pb-1.5 text-xl; }
+  .readme h3 { @apply text-lg; }
+  .readme :is(p, ul, ol, blockquote, pre, table) { @apply my-3; }
+  .readme ul { @apply list-disc pl-6; }
+  .readme ol { @apply list-decimal pl-6; }
+  .readme li > :is(ul, ol) { @apply my-1; }
+  .readme blockquote { @apply border-l-4 pl-4 text-muted-foreground; }
+  .readme :not(pre) > code { @apply rounded bg-muted px-1.5 py-0.5; }
+  .readme table { @apply block w-max max-w-full overflow-x-auto border-collapse text-sm; }
+  .readme :is(th, td) { @apply border px-3 py-1.5 text-left; }
+  .readme th { @apply bg-muted font-semibold text-foreground; }
+  .readme hr { @apply my-6; }
+  .readme input[type="checkbox"] { @apply mr-1.5; }
   /* A faint grid with a mint glow, behind heroes. */
   .backdrop-grid {
     background-image:
